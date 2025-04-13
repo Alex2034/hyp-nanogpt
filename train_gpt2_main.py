@@ -25,40 +25,29 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 parser = argparse.ArgumentParser()
 
 # Configurable arguments
-parser.add_argument("--data_path", type=str, default="data/fineweb10B")
-parser.add_argument("--batch_size", type=int, default=512)
+# Add flag for test run mode
+parser.add_argument("--test_run", action="store_true")
+parser.add_argument("--data_path", type=str, default="data/shakespeare_char")
+parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--device_batch_size", type=int, default=32)
-parser.add_argument("--num_iterations", type=int, default=4578)
+parser.add_argument("--num_iterations", type=int, default=4)
 parser.add_argument("--generate_every", type=int, default=0)
+parser.add_argument("--train_loss_every", type=int, default=2)
+parser.add_argument("--val_loss_every", type=int, default=2)
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--head_mode", type=str, default="euc", help="Set the mode for LM Head")
 parser.add_argument("--attn_mode", type=str, default="euc", help="Set the mode for attention layers")
 parser.add_argument("--curvature", type=float, default=1.0)
 parser.add_argument("--k_lr", type=float, default=0.0)
-parser.add_argument("--head_dim", type=int, default=128)
-parser.add_argument("--n_heads", type=int, default=6)
-parser.add_argument("--n_layers", type=int, default=12, help="Number of transformer layers")
-parser.add_argument("--sequence_length", type=int, default=1024)
+parser.add_argument("--head_dim", type=int, default=16)
+parser.add_argument("--n_heads", type=int, default=4)
+parser.add_argument("--n_layers", type=int, default=6)
+parser.add_argument("--sequence_length", type=int, default=128)
 
 args = parser.parse_args()
 
-# Create the config
-config = Config(
-    data_path=args.data_path,
-    batch_size=args.batch_size,
-    device_batch_size=args.device_batch_size,
-    num_iterations=args.num_iterations,
-    generate_every=args.generate_every,
-    seed=args.seed,
-    head_mode=args.head_mode,
-    attn_mode=args.attn_mode,
-    curvature=args.curvature,
-    k_lr=args.k_lr,
-    head_dim=args.head_dim,
-    n_heads=args.n_heads,
-    n_layers=args.n_layers,
-    sequence_length=args.sequence_length
-)
+# Instantiate the config
+config = Config(**vars(args))
 
 # Seeds
 random.seed(config.seed)
@@ -110,17 +99,14 @@ def decode_tokens(tokenizer, tokens):
 
 # DDP setup
 assert torch.cuda.is_available(), "CUDA is required for DDP but not available."
-
 try:
     ddp_rank = int(os.environ['RANK'])
     ddp_local_rank = int(os.environ['LOCAL_RANK'])
     ddp_world_size = int(os.environ['WORLD_SIZE'])
 except KeyError as e:
     raise RuntimeError(f"Missing environment variable for DDP: {e}")
-
-# Initialize the process group
 dist.init_process_group(backend='nccl')
-
+    
 # Map local rank to CUDA device
 device = torch.device(f'cuda:{ddp_local_rank}')
 torch.cuda.set_device(device)
@@ -129,8 +115,6 @@ print(f"[Rank {ddp_rank}] Using device: {device}")
 
 # Identify master process
 master_process = (ddp_rank == 0)
-if master_process:
-    print(f"[Rank {ddp_rank}] This is the master process.")
 
 # Convenience variables
 B, T = config.device_batch_size, config.sequence_length
@@ -154,13 +138,8 @@ model = GPT(config)
 model = model.to(device)    
 # model = torch.compile(model)
 
-# Step 3: Wrap the model in DDP
 model = DDP(model, device_ids=[ddp_local_rank], find_unused_parameters=True)
 raw_model = model.module  # Always access raw model via .module
-
-# Optional: Verify that DDP is correctly set up
-if master_process:
-    print(f"[Rank {ddp_rank}] Model wrapped in DDP.")
 
 ctx = torch.amp.autocast(device_type='cuda', dtype=torch.bfloat16)
 
@@ -184,7 +163,6 @@ else:
 if master_process:
     print(f"k params lengths: head = {len(head_k_params)}, attn = {len(attn_k_params)}")
     print(f"Tokenizer vocab size: {config.vocab_size}")
-
         
 lm_head_params = [p for name, p in raw_model.lm_head.named_parameters() if (p.requires_grad and ("lm_head.k" not in name))]
 
@@ -304,21 +282,6 @@ if master_process:
         return "".join("\t" + line for line in json_hp.splitlines(True))
 
     writer.add_text("run_params", pretty_json(vars(args)))
-    logfile = os.path.join(logdir, 'log.txt')
-    # create the log file
-    with open(logfile, "w") as f:
-        # begin the log by printing this file (the Python code)
-        f.write('='*100 + '\n')
-        f.write(code)
-        f.write('='*100 + '\n')
-        # log information about the hardware/software environment this is running on
-        # and print the full `nvidia-smi` to file
-        f.write(f"Running pytorch {torch.version.__version__} compiled for CUDA {torch.version.cuda}\nnvidia-smi:\n")
-        import subprocess
-        result = subprocess.run(['nvidia-smi'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        f.write(f'{result.stdout}\n')
-        f.write('='*100 + '\n')
-
 
 def compute_grad_norm(params):
     """Compute the total L2 norm of gradients in the given list of parameters."""
@@ -365,12 +328,10 @@ for step in range(config.num_iterations + 1):
                 del loss
         dist.all_reduce(val_loss, op=dist.ReduceOp.AVG)
         val_loss /= val_steps
-        # log val loss to console and to logfile
+        # log val loss to console 
         if master_process:
             tokens_seen = step * config.batch_size * config.sequence_length
             print(f'step:{step}/{config.num_iterations}, tokens seen: {tokens_seen/1e6:.2f}M, val_loss:{val_loss:.4f} train_time:{training_time_s:.2f}s step_avg:{1000*training_time_s/(timed_steps-1):.0f}ms')
-            with open(logfile, "a") as f:
-                f.write(f'step:{step}/{config.num_iterations} val_loss:{val_loss:.4f} train_time:{training_time_s:.2f}s step_avg:{1000*training_time_s/(timed_steps-1):.0f}ms\n')
             writer.add_scalar('Loss/Validation', val_loss.item(), tokens_seen)
         # start the clock again
         torch.cuda.synchronize()
@@ -450,19 +411,19 @@ for step in range(config.num_iterations + 1):
             continue
         p.grad /= train_accumulation_steps
 
-    if master_process and step % config.train_loss_every == 0:
+    # if master_process and step % config.train_loss_every == 0:
 
-        grad_norm_lm_head = compute_grad_norm(lm_head_params)
-        grad_norm_matrix = compute_grad_norm(matrix_params)
-        grad_norm_wte = compute_grad_norm(wte_params)
-        grad_norm_head_k = compute_grad_norm(head_k_params)
-        grad_norm_attn_k = compute_grad_norm(attn_k_params)
+    #     grad_norm_lm_head = compute_grad_norm(lm_head_params)
+    #     grad_norm_matrix = compute_grad_norm(matrix_params)
+    #     grad_norm_wte = compute_grad_norm(wte_params)
+    #     grad_norm_head_k = compute_grad_norm(head_k_params)
+    #     grad_norm_attn_k = compute_grad_norm(attn_k_params)
 
-        writer.add_scalar("grad_norm/lm_head", grad_norm_lm_head, step)
-        writer.add_scalar("grad_norm/matrix", grad_norm_matrix, step)
-        writer.add_scalar("grad_norm/wte", grad_norm_wte, step)
-        writer.add_scalar("grad_norm/head_k", grad_norm_head_k, step)
-        writer.add_scalar("grad_norm/attn_k", grad_norm_attn_k, step)
+    #     writer.add_scalar("grad_norm/lm_head", grad_norm_lm_head, step)
+    #     writer.add_scalar("grad_norm/matrix", grad_norm_matrix, step)
+    #     writer.add_scalar("grad_norm/wte", grad_norm_wte, step)
+    #     writer.add_scalar("grad_norm/head_k", grad_norm_head_k, step)
+    #     writer.add_scalar("grad_norm/attn_k", grad_norm_attn_k, step)
 
     # step the optimizers and schedulers
     for opt, sched in zip(optimizers, schedulers):
@@ -485,8 +446,6 @@ for step in range(config.num_iterations + 1):
         estimated_total_time = avg_time_per_step * config.num_iterations
         tokens_seen = step * config.batch_size * config.sequence_length 
         print(f"step:{step}/{config.num_iterations}, tokens seen:{tokens_seen/1e6:.2f}M, avg_train_loss:{avg_train_loss:.4f} time:{elapsed_time:.0f}/{estimated_total_time:.0f}s step_avg:{1000*avg_time_per_step:.0f}ms")
-        with open(logfile, "a") as f:
-            f.write(f"step:{step}/{config.num_iterations} avg_train_loss:{avg_train_loss:.4f} time:{elapsed_time:.0f}s step_avg:{1000*avg_time_per_step:.0f}ms\n")
         writer.add_scalar('Loss/Train', avg_train_loss, tokens_seen)
         train_loss_accum = 0.0
         train_loss_count = 0
@@ -494,12 +453,12 @@ for step in range(config.num_iterations + 1):
 if master_process:
     total_training_time = time.time() - total_t0
     print(f"Total training time: {total_training_time:.2f}s")
-    with open(logfile, "a") as f:
-        f.write(f"Total training time: {total_training_time:.2f}s\n")
     print(f"peak memory consumption: {torch.cuda.max_memory_allocated() // 1024 // 1024} MiB")
 
 # -------------------------------------------------------------------------
 # clean up nice
 if master_process:
     writer.close()
+
+
 dist.destroy_process_group()

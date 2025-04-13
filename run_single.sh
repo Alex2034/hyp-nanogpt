@@ -17,7 +17,3 @@ OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=3 torchrun --standalone --nproc_per_node=
     --k_lr 0. \
     --seed 0 \
     > logs/last2.txt 2>&1
-    
-# --curvature "${curvature}" \
-# --k_lr "${k_lr}" \
-# --seed "${seed}" \

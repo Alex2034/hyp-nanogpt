@@ -3,6 +3,7 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     # Data hyperparams
+    test_run: bool = False
     data_path: str = "data/fineweb10B"
     input_bin: str = ""
     input_val_bin: str = ""
