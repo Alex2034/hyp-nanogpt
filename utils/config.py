@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 @dataclass
-class FullConfig:
+class Config:
     # Data hyperparams
     data_path: str = "data/fineweb10B"
     input_bin: str = ""

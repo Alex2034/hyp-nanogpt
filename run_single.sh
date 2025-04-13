@@ -1,9 +1,9 @@
 #!/bin/bash
 
-OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=1,3 torchrun --standalone --nproc_per_node=2 \
+OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=3 torchrun --standalone --nproc_per_node=1 \
     train_gpt2_main.py \
     --data_path "data/shakespeare_char" \
-    --device_batch_size 16 \
+    --device_batch_size 32 \
     --batch_size 32 \
     --num_iterations 300 \
     --generate_every 100 \

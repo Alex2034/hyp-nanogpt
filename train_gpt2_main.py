@@ -18,7 +18,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from model.model import GPT
 from utils.muon import Muon
 from utils.loader import DistributedDataLoader
-from utils.config import FullConfig
+from utils.config import Config
 torch.set_float32_matmul_precision('high')
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -43,7 +43,7 @@ parser.add_argument("--sequence_length", type=int, default=1024)
 args = parser.parse_args()
 
 # Create the config
-config = FullConfig(
+config = Config(
     data_path=args.data_path,
     batch_size=args.batch_size,
     device_batch_size=args.device_batch_size,
