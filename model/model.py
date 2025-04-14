@@ -3,6 +3,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+from lorentz import LorentzManifold
 from model.lmath import project, distance
 
 # --------------------------------
@@ -201,51 +202,89 @@ class Block(nn.Module):
         return x
 
         
-
 class LorentzMLR(nn.Module):
-    """ Multinomial logistic regression (MLR) in the Lorentz model
-    """
-    def __init__(
-            self, 
-            num_features: int, 
-            num_classes: int,
-            curvature: float = 1.0,
-            init: str = 'zero'
-        ):
-        super(LorentzMLR, self).__init__()
+    def __init__(self, num_features, num_classes, curvature=1.0, sparse=False):
+        super().__init__()
+        # 1) Create a LorentzManifold with a chosen curvature K
+        self.manifold = LorentzManifold(K=curvature)
 
-        self.k = nn.Parameter(torch.tensor(curvature))
-        self.a = torch.nn.Parameter(torch.zeros(num_classes,)) # optimize properly
-        self.z = torch.nn.Parameter(F.pad(torch.zeros(num_classes, num_features-2), pad=(1,0), value=1))
-
-        # self.init_weights()
-
+        # 2) Allocate Lorentz parameters:
+        #    For multi-class logistic regression, we want 'num_classes' many
+        #    hyperbolic "prototypes" (class embeddings) each in dimension num_features.
+        #    We actually need dimension = num_features + 1 in the Lorentz model,
+        #    but .allocate_lt accounts for that internally.
+        self.lt = self.manifold.allocate_lt(num_classes, num_features, sparse=sparse)
+        
+        # Initialize them properly on the hyperboloid
+        self.manifold.init_weights(self.lt)
+    
     def forward(self, x):
-        # x: (B, T, num_features)
+        """
+        x: shape (batch_size, seq_len, num_features)
+           or (batch_size, num_features) depending on usage
+        Return: logits of shape (batch_size, seq_len, num_classes)
+                or (batch_size, num_classes)
+        
+        We'll do the simplest approach: 
+        - We interpret each row in `x` as a point in hyperbolic space (by 
+          padding or some transform).
+        - We measure some "distance" to each class prototype. 
+        - Then negative distance can act as the unnormalized logit.
+        """
+        # 1) Flatten or reshape as needed so we treat each row as an embedding
+        B, T, D = x.shape  # if x has 3D shape, e.g. (batch, seq_len, emb_dim)
+        # Or if it’s (batch, D) then T=1 is implied.
+        x = x.view(B * T, D)
 
-        # Hyperplane parameters
-        sqrt_mK = 1 / self.k.sqrt()  # scalar
-        norm_z = torch.norm(self.z, dim=-1)  # (num_classes,)
-        w_t = torch.sinh(sqrt_mK * self.a) * norm_z  # (num_classes,)
-        w_s = torch.cosh(sqrt_mK * self.a).unsqueeze(-1) * self.z  # (num_classes, num_features -1)
+        # 2) On the forward pass, we might “lift” x from R^D to the hyperboloid 
+        #    coordinates (D+1) by something like:
+        #    new_x = [ sqrt(1 + ||x||^2), x_1, ..., x_D ]
+        #    In practice, you can create a small helper function that does the 
+        #    same as `Manifold.normalize()` does for a batch of points. 
+        #    The code below is a quick demonstration:
+        x_expanded = torch.zeros(x.size(0), D + 1, device=x.device)
+        # time-like coordinate
+        x_expanded[:, 0] = torch.sqrt(1 + (x * x).sum(dim=1))  
+        # space-like part
+        x_expanded[:, 1:] = x
 
-        beta = torch.sqrt(-w_t**2 + torch.norm(w_s, dim=-1)**2)  # (num_classes,)
+        # 3) Get the class embeddings from the manifold
+        #    shape = (num_classes, D+1)
+        c = self.lt.weight  # The prototypes, each on the hyperboloid
+        c = self.manifold.normalize(c)
 
-        x0 = x.narrow(-1, 0, 1)  # (B, T, 1)
-        x_rest = x.narrow(-1, 1, x.shape[-1]-1)  # (B, T, num_features -1)
-        inner_prod = torch.matmul(x_rest, self.z.T)  # (B, T, num_classes)
-        alpha = -x0 * w_t.view(1, 1, -1) + torch.cosh(sqrt_mK * self.a).view(1, 1, -1) * inner_prod  # (B, T, num_classes)
-        sqrt_mK_alpha_over_beta = sqrt_mK * alpha / beta.view(1, 1, -1)
-        d = self.k.sqrt() * torch.abs(torch.asinh(sqrt_mK_alpha_over_beta))  # (B, T, num_classes)
+        # 4) Compute Lorentz distance between x_expanded and each class prototype
+        #    We'll produce shape (batch*T, num_classes)
+        #    Then we can interpret negative distance as logits
+        #    (because in hyperbolic space, a “closer” class means a bigger logit).
+        #    This might be done by the manifold’s `distance` method in a batched way:
+        dist = self.manifold.distance(
+            x_expanded.unsqueeze(1),  # shape (batch*T, 1, D+1)
+            c.unsqueeze(0)           # shape (1, num_classes, D+1)
+        )
+        # dist now has shape (batch*T, num_classes).
 
-        logits = torch.sign(alpha) * beta.view(1, 1, -1) * d  # (B, T, num_classes)
+        # 5) Convert distances to (negative) logits
+        logits = -dist  # shape (batch*T, num_classes)
 
+        # Reshape back to (batch_size, seq_len, num_classes) if needed
+        logits = logits.view(B, T, -1)
         return logits
 
-    def init_weights(self):
-        stdv = 1. / math.sqrt(1 + self.z.size(1))
-        nn.init.uniform_(self.z, -stdv, stdv)
-        nn.init.uniform_(self.a, -stdv, stdv)
+    def optim_params(self):
+        """
+        Return the parameter + Riemannian methods for this layer 
+        so it can be used with RiemannianSGD or similar.
+        """
+        return [
+            {
+                "params": self.lt.parameters(),
+                "rgrad": self.manifold.rgrad,
+                "expm": self.manifold.expm,
+                "logm": self.manifold.logm,
+                "ptransp": self.manifold.ptransp,
+            }
+        ]
 
 
 class GPT(nn.Module):
