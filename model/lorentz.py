@@ -205,6 +205,8 @@ class LorentzManifold(Manifold):
         return sqnu.sqrt()
 
 
+# import sys
+
 class LorentzDot(Function):
     @staticmethod
     def forward(ctx, u, v):
@@ -214,6 +216,16 @@ class LorentzDot(Function):
     @staticmethod
     def backward(ctx, g):
         u, v = ctx.saved_tensors
-        g = g.unsqueeze(-1).expand_as(u).clone()
-        g.narrow(-1, 0, 1).mul_(-1)
-        return g * v, g * u
+        grad_u = v.clone()
+        grad_u[..., 0] *= -1   # Minkowski sign flip on time coord
+
+        grad_v = u.clone()
+        grad_v[..., 0] *= -1
+
+        grad_u = grad_u * g.unsqueeze(-1)
+        grad_v = grad_v * g.unsqueeze(-1)
+
+        grad_u = grad_u.sum_to_size(*u.shape)
+        grad_v = grad_v.sum_to_size(*v.shape)
+
+        return grad_u, grad_v

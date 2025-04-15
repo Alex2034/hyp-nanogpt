@@ -1,6 +1,7 @@
 import torch
 from data.shakespeare_char.CharTokenizer import CharacterTokenizer
 from model.model import GPT
+from model.lorentz import LorentzDot
 from utils.config import Config
 
 # Initialize tokenizer
@@ -30,10 +31,11 @@ print("Forward pass successful!")
 print(f"Logits shape: {logits.shape}")
 print(f"Loss: {loss}")
 
-# Try generation
-context = input_ids
-generated = model.generate_text(context, max_length=10)
-print("Generation successful!")
-print(f"Generated shape: {generated.shape}")
-print(f"Generated text: {tokenizer.decode(generated[0].tolist())}")
-    
+loss.backward()
+# # Try generation
+# context = input_ids
+# generated = model.generate_text(context, max_length=10)
+# print("Generation successful!")
+# print(f"Generated shape: {generated.shape}")
+# print(f"Generated text: {tokenizer.decode(generated[0].tolist())}")
+
