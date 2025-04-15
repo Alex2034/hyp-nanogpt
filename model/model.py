@@ -226,15 +226,8 @@ class LorentzMLR(nn.Module):
         B, T, D = x.shape  
 
         # 2) On the forward pass, we might “lift” x from R^D to the hyperboloid 
-        #    coordinates (D+1) by something like:
-        #    new_x = [ sqrt(1 + ||x||^2), x_1, ..., x_D ]
-        #    In practice, you can create a small helper function that does the 
-        #    same as `Manifold.normalize()` does for a batch of points. 
-        #    The code below is a quick demonstration:
         x_expanded = torch.zeros(x.size(0), D + 1, device=x.device)
-        # time-like coordinate
         x_expanded[:, 0] = torch.sqrt(1 + (x * x).sum(dim=1))  
-        # space-like part
         x_expanded[:, 1:] = x
 
         # 3) Get the class embeddings from the manifold
@@ -243,21 +236,12 @@ class LorentzMLR(nn.Module):
         c = self.manifold.normalize(c)
 
         # 4) Compute Lorentz distance between x_expanded and each class prototype
-        #    We'll produce shape (batch*T, num_classes)
-        #    Then we can interpret negative distance as logits
-        #    (because in hyperbolic space, a “closer” class means a bigger logit).
-        #    This might be done by the manifold’s `distance` method in a batched way:
         dist = self.manifold.distance(
-            x_expanded.unsqueeze(1),  # shape (batch*T, 1, D+1)
+            x_expanded,  # shape (batch, T, D+1)
             c.unsqueeze(0)           # shape (1, num_classes, D+1)
         )
-        # dist now has shape (batch*T, num_classes).
 
-        # 5) Convert distances to (negative) logits
-        logits = -dist  # shape (batch*T, num_classes)
-
-        # Reshape back to (batch_size, seq_len, num_classes) if needed
-        logits = logits.view(B, T, -1)
+        logits = -dist  # shape (batch, T, num_classes)
         return logits
 
     def optim_params(self):

@@ -1,9 +1,9 @@
 import torch
 from transformers import PreTrainedTokenizerFast # type: ignore
 from model.model import GPT
-from utils.config import FullConfig
+from utils.config import Config
 
-config = FullConfig()
+config = Config()
 config.vocab_size = 100  
 config.n_layers = 2      
 config.n_heads = 2       
