@@ -34,6 +34,9 @@ class Config:
     attn_mode: str = "euc"
     curvature: float = 1.0
     k_lr: float = 0.0
+    wte_lr: float = 0.6
+    muon_lr: float = 0.05
+    head_lr: float = 0.22
     # Reproducibility
     seed: int = 42
     

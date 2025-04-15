@@ -3,31 +3,9 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+from model.lorentz import LorentzManifold
 from model.lmath import project, distance
 
-# --------------------------------
-# Hyperbolic Attention
-# --------------------------------  
-
-# class HyperbolicEmbedding(nn.Module):
-#     def __init__(self, vocab_size, dim, eps=1e-6):
-#         super().__init__()
-#         self.eps = eps
-#         self.spatial_embed = nn.Embedding(vocab_size, dim)
-#         self._init_weights()
-
-#     def _init_weights(self):
-#         nn.init.normal_(self.spatial_embed.weight, mean=0.0, std=0.02)
-        
-#     def forward(self, idx):
-#         x_spatial = self.spatial_embed(idx)
-        
-#         # x0 computation
-#         spatial_sq = torch.sum(x_spatial**2, dim=-1, keepdim=True)
-#         spatial_sq = torch.clamp(spatial_sq, min=0)  # Prevent negative due to numerical errors
-#         x0 = torch.sqrt(1 + spatial_sq + self.eps)
-        
-#         return torch.cat([x0, x_spatial], dim=-1)
 
 class Rotary(torch.nn.Module):
 
@@ -201,51 +179,49 @@ class Block(nn.Module):
         return x
 
         
-
 class LorentzMLR(nn.Module):
-    """ Multinomial logistic regression (MLR) in the Lorentz model
-    """
-    def __init__(
-            self, 
-            num_features: int, 
-            num_classes: int,
-            curvature: float = 1.0,
-            init: str = 'zero'
-        ):
-        super(LorentzMLR, self).__init__()
-
-        self.k = nn.Parameter(torch.tensor(curvature))
-        self.a = torch.nn.Parameter(torch.zeros(num_classes,)) # optimize properly
-        self.z = torch.nn.Parameter(F.pad(torch.zeros(num_classes, num_features-2), pad=(1,0), value=1))
-
-        # self.init_weights()
-
+    def __init__(self, num_classes, n_embd, init_range=1e-5):
+        super().__init__()
+        self.manifold = LorentzManifold()
+        self.lt = self.manifold.allocate_lt(num_classes, n_embd)
+        self.manifold.init_weights(self.lt, init_range=init_range)
+    
     def forward(self, x):
-        # x: (B, T, num_features)
+        """
+        x: shape (batch_size, seq_len, n_embd)
+           or (batch_size, n_embd) depending on usage
+        Return: logits of shape (batch_size, seq_len, num_classes)
+                or (batch_size, num_classes)
+        """
+        x0 = torch.sqrt(1 + (x * x).sum(dim=-1, keepdim=True))
+        x_hyp = torch.cat([x0, x], dim=-1) # shape (batch, T, D+1)
 
-        # Hyperplane parameters
-        sqrt_mK = 1 / self.k.sqrt()  # scalar
-        norm_z = torch.norm(self.z, dim=-1)  # (num_classes,)
-        w_t = torch.sinh(sqrt_mK * self.a) * norm_z  # (num_classes,)
-        w_s = torch.cosh(sqrt_mK * self.a).unsqueeze(-1) * self.z  # (num_classes, num_features -1)
+        # 3) Get the class embeddings from the manifold
+        c = self.lt.weight  # The prototypes, each on the hyperboloid
+        c = self.manifold.normalize(c) # shape = (num_classes, D+1)
 
-        beta = torch.sqrt(-w_t**2 + torch.norm(w_s, dim=-1)**2)  # (num_classes,)
+        u = x_hyp.unsqueeze(-2) # shape (batch, T, 1, D+1)
+        v = c.unsqueeze(0).unsqueeze(0) # shape (1, 1, num_classes, D+1)
 
-        x0 = x.narrow(-1, 0, 1)  # (B, T, 1)
-        x_rest = x.narrow(-1, 1, x.shape[-1]-1)  # (B, T, num_features -1)
-        inner_prod = torch.matmul(x_rest, self.z.T)  # (B, T, num_classes)
-        alpha = -x0 * w_t.view(1, 1, -1) + torch.cosh(sqrt_mK * self.a).view(1, 1, -1) * inner_prod  # (B, T, num_classes)
-        sqrt_mK_alpha_over_beta = sqrt_mK * alpha / beta.view(1, 1, -1)
-        d = self.k.sqrt() * torch.abs(torch.asinh(sqrt_mK_alpha_over_beta))  # (B, T, num_classes)
+        # 4) Compute Lorentz distance between x_expanded and each class prototype
+        dist = self.manifold.distance(u, v)
 
-        logits = torch.sign(alpha) * beta.view(1, 1, -1) * d  # (B, T, num_classes)
+        return -dist
 
-        return logits
-
-    def init_weights(self):
-        stdv = 1. / math.sqrt(1 + self.z.size(1))
-        nn.init.uniform_(self.z, -stdv, stdv)
-        nn.init.uniform_(self.a, -stdv, stdv)
+    def optim_params(self):
+        """
+        Return the parameter + Riemannian methods for this layer 
+        so it can be used with RiemannianSGD or similar.
+        """
+        return [
+            {
+                "params": self.lt.parameters(),
+                "rgrad": self.manifold.rgrad,
+                "expm": self.manifold.expm,
+                "logm": self.manifold.logm,
+                "ptransp": self.manifold.ptransp,
+            }
+        ]
 
 
 class GPT(nn.Module):
@@ -259,17 +235,17 @@ class GPT(nn.Module):
             h = nn.ModuleList([Block(config) for _ in range(config.n_layers)]),
         ))
 
+        stdv = 1. / math.sqrt(config.n_embd)
         if config.head_mode == 'euc':
             self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
-            # stdv = 1. / math.sqrt(config.n_embd)
-            # nn.init.uniform_(self.lm_head.weight.data, -stdv, stdv)
-            self.lm_head.weight.data.zero_()
+            nn.init.uniform_(self.lm_head.weight.data, -stdv, stdv)
+            # self.lm_head.weight.data.zero_()
         
         elif config.head_mode == 'hyp':
             self.lm_head = LorentzMLR(
-                num_features=config.n_embd,
                 num_classes=config.vocab_size,
-                curvature=config.curvature
+                n_embd=config.n_embd,
+                init_range=stdv
             )
         else:
             raise ValueError("Invalid head_mode, choose 'euc'/'hyp'.")
