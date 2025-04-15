@@ -3,32 +3,9 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from lorentz import LorentzManifold
+from model.lorentz import LorentzManifold
 from model.lmath import project, distance
 
-# --------------------------------
-# Hyperbolic Attention
-# --------------------------------  
-
-# class HyperbolicEmbedding(nn.Module):
-#     def __init__(self, vocab_size, dim, eps=1e-6):
-#         super().__init__()
-#         self.eps = eps
-#         self.spatial_embed = nn.Embedding(vocab_size, dim)
-#         self._init_weights()
-
-#     def _init_weights(self):
-#         nn.init.normal_(self.spatial_embed.weight, mean=0.0, std=0.02)
-        
-#     def forward(self, idx):
-#         x_spatial = self.spatial_embed(idx)
-        
-#         # x0 computation
-#         spatial_sq = torch.sum(x_spatial**2, dim=-1, keepdim=True)
-#         spatial_sq = torch.clamp(spatial_sq, min=0)  # Prevent negative due to numerical errors
-#         x0 = torch.sqrt(1 + spatial_sq + self.eps)
-        
-#         return torch.cat([x0, x_spatial], dim=-1)
 
 class Rotary(torch.nn.Module):
 
@@ -203,46 +180,33 @@ class Block(nn.Module):
 
         
 class LorentzMLR(nn.Module):
-    def __init__(self, num_features, num_classes, curvature=1.0, sparse=False):
+    def __init__(self, num_classes, n_embd, init_range=1e-5):
         super().__init__()
         self.manifold = LorentzManifold()
-        self.lt = self.manifold.allocate_lt(num_classes, num_features, sparse=sparse)
-        self.manifold.init_weights(self.lt)
+        self.lt = self.manifold.allocate_lt(num_classes, n_embd)
+        self.manifold.init_weights(self.lt, init_range=init_range)
     
     def forward(self, x):
         """
-        x: shape (batch_size, seq_len, num_features)
-           or (batch_size, num_features) depending on usage
+        x: shape (batch_size, seq_len, n_embd)
+           or (batch_size, n_embd) depending on usage
         Return: logits of shape (batch_size, seq_len, num_classes)
                 or (batch_size, num_classes)
-        
-        We'll do the simplest approach: 
-        - We interpret each row in `x` as a point in hyperbolic space (by 
-          padding or some transform).
-        - We measure some "distance" to each class prototype. 
-        - Then negative distance can act as the unnormalized logit.
         """
-        # 1) Flatten or reshape as needed so we treat each row as an embedding
-        B, T, D = x.shape  
-
-        # 2) On the forward pass, we might “lift” x from R^D to the hyperboloid 
-        x_expanded = torch.zeros(x.size(0), D + 1, device=x.device)
-        x_expanded[:, 0] = torch.sqrt(1 + (x * x).sum(dim=1))  
-        x_expanded[:, 1:] = x
+        x0 = torch.sqrt(1 + (x * x).sum(dim=-1, keepdim=True))
+        x_hyp = torch.cat([x0, x], dim=-1) # shape (batch, T, D+1)
 
         # 3) Get the class embeddings from the manifold
-        #    shape = (num_classes, D+1)
         c = self.lt.weight  # The prototypes, each on the hyperboloid
-        c = self.manifold.normalize(c)
+        c = self.manifold.normalize(c) # shape = (num_classes, D+1)
+
+        u = x_hyp.unsqueeze(-2) # shape (batch, T, 1, D+1)
+        v = c.unsqueeze(0).unsqueeze(0) # shape (1, 1, num_classes, D+1)
 
         # 4) Compute Lorentz distance between x_expanded and each class prototype
-        dist = self.manifold.distance(
-            x_expanded,  # shape (batch, T, D+1)
-            c.unsqueeze(0)           # shape (1, num_classes, D+1)
-        )
+        dist = self.manifold.distance(u, v)
 
-        logits = -dist  # shape (batch, T, num_classes)
-        return logits
+        return -dist
 
     def optim_params(self):
         """
@@ -271,17 +235,17 @@ class GPT(nn.Module):
             h = nn.ModuleList([Block(config) for _ in range(config.n_layers)]),
         ))
 
+        stdv = 1. / math.sqrt(config.n_embd)
         if config.head_mode == 'euc':
             self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
-            # stdv = 1. / math.sqrt(config.n_embd)
-            # nn.init.uniform_(self.lm_head.weight.data, -stdv, stdv)
-            self.lm_head.weight.data.zero_()
+            nn.init.uniform_(self.lm_head.weight.data, -stdv, stdv)
+            # self.lm_head.weight.data.zero_()
         
         elif config.head_mode == 'hyp':
             self.lm_head = LorentzMLR(
-                num_features=config.n_embd,
                 num_classes=config.vocab_size,
-                curvature=config.curvature
+                n_embd=config.n_embd,
+                init_range=stdv
             )
         else:
             raise ValueError("Invalid head_mode, choose 'euc'/'hyp'.")

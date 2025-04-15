@@ -43,18 +43,18 @@ class LorentzManifold(Manifold):
         if K is not None:
             self.inner_radius = 2 * self.K / (1 + np.sqrt(1 + 4 * self.K * self.K))
 
-    def allocate_lt(self, N, dim, sparse):
+    def allocate_lt(self, N, dim, sparse=False):
         return Embedding(N, dim + 1, sparse=sparse)
 
-    def init_weights(self, w, irange=1e-5):
-        w.weight.data.uniform_(-irange, irange)
+    def init_weights(self, w, init_range=1e-5):
+        w.weight.data.uniform_(-init_range, init_range)
         self.normalize(w.weight.data)
 
     @staticmethod
     def ldot(u, v, keepdim=False):
         """Lorentzian Scalar Product"""
         uv = u * v
-        uv.narrow(-1, 0, 1).mul_(-1)
+        uv = uv.narrow(-1, 0, 1).mul(-1)
         return torch.sum(uv, dim=-1, keepdim=keepdim)
 
     def to_poincare_ball(self, u):
@@ -75,7 +75,7 @@ class LorentzManifold(Manifold):
         d = w.size(-1) - 1
         narrowed = w.narrow(-1, 1, d)
         if self.max_norm:
-            narrowed.view(-1, d).renorm_(p=2, dim=0, maxnorm=self.max_norm)
+            narrowed = narrowed.view(-1, d).renorm(p=2, dim=0, maxnorm=self.max_norm)
 
         if self.K is not None:
             # Push embeddings outside of `inner_radius`
@@ -84,11 +84,10 @@ class LorentzManifold(Manifold):
             scal = torch.ones_like(wnrm)
             ix = wnrm < (self.inner_radius + self._eps)
             scal[ix] = (self.inner_radius + self._eps) / wnrm[ix]
-            narrowed.mul_(scal.unsqueeze(-1))
+            narrowed = narrowed * scal.unsqueeze(-1)
 
-        tmp = 1 + torch.sum(torch.pow(narrowed, 2), dim=-1, keepdim=True)
-        tmp.sqrt_()
-        w.narrow(-1, 0, 1).copy_(tmp)
+        w0 = torch.sqrt(1 + torch.sum(torch.pow(narrowed, 2), dim=-1, keepdim=True))
+        w = torch.cat([w0, narrowed], dim=-1)
         return w
 
     def normalize_tan(self, x_all, v_all):
@@ -96,8 +95,8 @@ class LorentzManifold(Manifold):
         x = x_all.narrow(1, 1, d)
         xv = torch.sum(x * v_all.narrow(1, 1, d), dim=1, keepdim=True)
         tmp = 1 + torch.sum(torch.pow(x_all.narrow(1, 1, d), 2), dim=1, keepdim=True)
-        tmp.sqrt_().clamp_(min=self._eps)
-        v_all.narrow(1, 0, 1).copy_(xv / tmp)
+        tmp = tmp.sqrt().clamp(min=self._eps)
+        v_all = torch.cat([xv / tmp, v_all.narrow(1, 1, d)], dim=1)
         return v_all
 
     def rgrad(self, p, d_p):
@@ -108,8 +107,8 @@ class LorentzManifold(Manifold):
         else:
             u = d_p
             x = p
-        u.narrow(-1, 0, 1).mul_(-1)
-        u.addcmul_(self.ldot(x, u, keepdim=True).expand_as(x), x)
+        u = u.narrow(-1, 0, 1).mul(-1)
+        u = u + self.ldot(x, u, keepdim=True).expand_as(x) * x
         return d_p
 
     def expm(self, p, d_p, lr=None, out=None, normalize=False):
@@ -118,46 +117,41 @@ class LorentzManifold(Manifold):
             out = p
         if d_p.is_sparse:
             ix, d_val = d_p._indices().squeeze(), d_p._values()
-            # This pulls `ix` out of the original embedding table, which could
-            # be in a corrupted state.  normalize it to fix it back to the
-            # surface of the hyperboloid...
-            # TODO: we should only do the normalize if we know that we are
-            # training with multiple threads, otherwise this is a bit wasteful
             p_val = self.normalize(p.index_select(0, ix))
             ldv = self.ldot(d_val, d_val, keepdim=True)
             if self.debug:
                 assert all(ldv > 0), "Tangent norm must be greater 0"
                 assert all(ldv == ldv), "Tangent norm includes NaNs"
-            nd_p = ldv.clamp_(min=0).sqrt_()
+            nd_p = ldv.clamp(min=0).sqrt()
             t = torch.clamp(nd_p, max=self.norm_clip)
-            nd_p.clamp_(min=self.eps)
-            newp = (torch.cosh(t) * p_val).addcdiv_(torch.sinh(t) * d_val, nd_p)
+            nd_p = nd_p.clamp(min=self.eps)
+            newp = (torch.cosh(t) * p_val) + (torch.sinh(t) * d_val) / nd_p
             if normalize:
                 newp = self.normalize(newp)
-            p.index_copy_(0, ix, newp)
+            p = p.index_copy(0, ix, newp)
         else:
             if lr is not None:
-                d_p.narrow(-1, 0, 1).mul_(-1)
-                d_p.addcmul_((self.ldot(p, d_p, keepdim=True)).expand_as(p), p)
-                d_p.mul_(-lr)
+                d_p = d_p.narrow(-1, 0, 1).mul(-1)
+                d_p = d_p + (self.ldot(p, d_p, keepdim=True)).expand_as(p) * p
+                d_p = d_p * (-lr)
             ldv = self.ldot(d_p, d_p, keepdim=True)
             if self.debug:
                 assert all(ldv > 0), "Tangent norm must be greater 0"
                 assert all(ldv == ldv), "Tangent norm includes NaNs"
-            nd_p = ldv.clamp_(min=0).sqrt_()
+            nd_p = ldv.clamp(min=0).sqrt()
             t = torch.clamp(nd_p, max=self.norm_clip)
-            nd_p.clamp_(min=self.eps)
-            newp = (torch.cosh(t) * p).addcdiv_(torch.sinh(t) * d_p, nd_p)
+            nd_p = nd_p.clamp(min=self.eps)
+            newp = (torch.cosh(t) * p) + (torch.sinh(t) * d_p) / nd_p
             if normalize:
                 newp = self.normalize(newp)
-            p.copy_(newp)
+            p = newp
 
     def logm(self, x, y):
         """Logarithmic map on the Lorenz Manifold"""
         xy = torch.clamp(self.ldot(x, y).unsqueeze(-1), max=-1)
-        v = acosh(-xy, self.eps).div_(
+        v = acosh(-xy, self.eps) / (
             torch.clamp(torch.sqrt(xy * xy - 1), min=self._eps)
-        ) * torch.addcmul(y, xy, x)
+        ) * (y + xy * x)
         return self.normalize_tan(x, v)
 
     def ptransp(self, x, y, v, ix=None, out=None):

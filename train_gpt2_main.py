@@ -137,7 +137,7 @@ model = GPT(config)
 model = model.to(device)    
 # model = torch.compile(model)
 
-model = DDP(model, device_ids=[ddp_local_rank], find_unused_parameters=True)
+model = DDP(model, device_ids=[ddp_local_rank])
 raw_model = model.module  # Always access raw model via .module
 
 ctx = torch.amp.autocast(device_type='cuda', dtype=torch.bfloat16)
@@ -165,15 +165,16 @@ if master_process:
 
 params = list(raw_model.transformer.h.parameters())
 matrix_params = [p for p in params if p.ndim == 2]
+non_matrix_params = [p for p in params if p.ndim != 2]  # Get non-matrix parameters
 wte_params = [raw_model.transformer.wte.weight]
 
-optimizer_wte = torch.optim.Adam(wte_params, lr=config.wte_lr, betas=(0.8, 0.95), eps=1e-10, fused=True)
+optimizer_wte = torch.optim.Adam(wte_params + non_matrix_params, lr=config.wte_lr, betas=(0.8, 0.95), eps=1e-10, fused=True)
 optimizer_muon = Muon(matrix_params, lr=config.muon_lr, momentum=0.95)
 
 if config.head_mode == 'hyp':
-        optimizer_head = RiemannianSGD(model.lm_head.optim_params(), lr=config.head_lr)
+        optimizer_head = RiemannianSGD(raw_model.lm_head.optim_params(), lr=config.head_lr)
 else:  # Euclidean head
-    optimizer_head = optim.SGD(model.lm_head.parameters(), lr=config.head_lr)
+    optimizer_head = optim.SGD(raw_model.lm_head.parameters(), lr=config.head_lr)
 
 optimizers = [optimizer_head, optimizer_muon, optimizer_wte]
 
