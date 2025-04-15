@@ -205,8 +205,6 @@ class LorentzManifold(Manifold):
         return sqnu.sqrt()
 
 
-# import sys
-
 class LorentzDot(Function):
     @staticmethod
     def forward(ctx, u, v):
