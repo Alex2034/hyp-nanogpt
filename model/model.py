@@ -205,17 +205,8 @@ class Block(nn.Module):
 class LorentzMLR(nn.Module):
     def __init__(self, num_features, num_classes, curvature=1.0, sparse=False):
         super().__init__()
-        # 1) Create a LorentzManifold with a chosen curvature K
-        self.manifold = LorentzManifold(K=curvature)
-
-        # 2) Allocate Lorentz parameters:
-        #    For multi-class logistic regression, we want 'num_classes' many
-        #    hyperbolic "prototypes" (class embeddings) each in dimension num_features.
-        #    We actually need dimension = num_features + 1 in the Lorentz model,
-        #    but .allocate_lt accounts for that internally.
+        self.manifold = LorentzManifold()
         self.lt = self.manifold.allocate_lt(num_classes, num_features, sparse=sparse)
-        
-        # Initialize them properly on the hyperboloid
         self.manifold.init_weights(self.lt)
     
     def forward(self, x):
@@ -232,9 +223,7 @@ class LorentzMLR(nn.Module):
         - Then negative distance can act as the unnormalized logit.
         """
         # 1) Flatten or reshape as needed so we treat each row as an embedding
-        B, T, D = x.shape  # if x has 3D shape, e.g. (batch, seq_len, emb_dim)
-        # Or if it’s (batch, D) then T=1 is implied.
-        x = x.view(B * T, D)
+        B, T, D = x.shape  
 
         # 2) On the forward pass, we might “lift” x from R^D to the hyperboloid 
         #    coordinates (D+1) by something like:

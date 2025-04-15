@@ -196,8 +196,8 @@ class LorentzManifold(Manifold):
         tmp = torch.pow(uvldot, 2) - 1.
         den = torch.sqrt(torch.pow(u0, 2) - 1.) * torch.sqrt(tmp.clamp_(min=self.eps))
         frac = torch.div(num, den)
-        if self.debug and (frac != frac).any():
-            import ipdb; ipdb.set_trace()
+        # if self.debug and (frac != frac).any():
+        #     import ipdb; ipdb.set_trace()
         frac.data.clamp_(min=-1 + self.eps, max=1 - self.eps)
         ksi = frac.acos()
         return ksi
