@@ -1,6 +1,6 @@
 # Hyperbolic nanoGPT
 
-Forked from [kellerjordan/nanoGPT](https://github.com/kellerjordan/nanoGPT)
+Forked from [kellerjordan/nanoGPT](https://github.com/kellerjordan/modded-nanogpt)
 
 This project explores the benefits of hyperbolic geometry in language models by modifying various components of nanoGPT. The hypothesis is that relationships in languagemight be better represented in hyperbolic rather than Euclidean space.
 
