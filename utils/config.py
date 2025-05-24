@@ -17,7 +17,8 @@ class Config:
     cooldown_frac: float = 0.4
     weight_decay: float = 0
     # Evaluation/logging
-    generate_every: int = 0
+    gen_every: int = 0
+    gen_lenght: int = 100
     train_loss_every: int = 10
     val_loss_every: int = 10
     val_tokens: int = None # 10_485_760

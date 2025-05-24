@@ -29,7 +29,7 @@ parser.add_argument("--data_path", type=str, default="data/shakespeare_char")
 parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--device_batch_size", type=int, default=32)
 parser.add_argument("--num_iterations", type=int, default=4)
-parser.add_argument("--generate_every", type=int, default=0)
+parser.add_argument("--gen_every", type=int, default=0)
 parser.add_argument("--train_loss_every", type=int, default=2)
 parser.add_argument("--val_loss_every", type=int, default=2)
 parser.add_argument("--head_dim", type=int, default=16)
@@ -107,9 +107,7 @@ torch.cuda.set_device(device)
 print(f"[Rank {ddp_rank}] Using device: {device}")
 
 master_process = (ddp_rank == 0)
-# Convenience variables
 B, T = config.device_batch_size, config.sequence_length
-# assert config.val_tokens % (B * T * ddp_world_size) == 0, "val_tokens must be divisible by total global batch size."
 
 assert config.batch_size % (B * ddp_world_size) == 0, "batch_size must be divisible by global batch size."
 train_accumulation_steps = config.batch_size // (B * ddp_world_size)
@@ -126,11 +124,11 @@ if master_process:
 x, y = train_loader.next_batch()
 
     
-def register_hooks(model):
-    for name, module in model.named_modules():
-        if hasattr(module, 'weight'):
-            module.register_forward_hook(lambda m, i, o: print(f"[FWD] {name} output norm: {o.norm().item()}"))
-            module.register_backward_hook(lambda m, grad_input, grad_output: print(f"[BWD] {name} grad_output norm: {grad_output[0].norm().item()}"))
+# def register_hooks(model):
+#     for name, module in model.named_modules():
+#         if hasattr(module, 'weight'):
+#             module.register_forward_hook(lambda m, i, o: print(f"[FWD] {name} output norm: {o.norm().item()}"))
+#             module.register_backward_hook(lambda m, grad_input, grad_output: print(f"[BWD] {name} grad_output norm: {grad_output[0].norm().item()}"))
 
 # Model setup
 model = GPT(config)  
@@ -270,20 +268,16 @@ total_start_event.record()
 interval_start_event.record()  
 
 train_loss_accum = 0.0
-train_loss_count = 0
+train_log_count = 0
+
+val_loss_accum = 0.0
+val_log_count  = 0
+
 # begin training
 train_loader.reset()
 for step in range(config.num_iterations + 1):
     last_step = (step == config.num_iterations)
-    # This effectively ignores timing first 10 steps, which are slower for weird reasons.
-    # Alternately, and slightly more correctly in terms of benchmarking, we could do 10
-    # steps with dummy data first, and then re-initialize the model and reset the loader.
-    # if step == 10:
-    #     training_time_s = 0.0
-    #     t0 = time.time()
-    # timed_steps = float('nan') if step <= 11 else (step - 10) + 1 # <= 11 to avoid bug in val
-
-    # once in a while evaluate the validation dataset
+    
     if (last_step or (config.val_loss_every > 0 and step % config.val_loss_every == 0)):
         
         # run validation batches
@@ -298,9 +292,9 @@ for step in range(config.num_iterations + 1):
                 del loss
         dist.all_reduce(val_loss, op=dist.ReduceOp.AVG)
         val_loss /= val_steps
+        val_loss_accum += val_loss
+        val_log_count  += 1
         # log val loss to console 
-        if master_process:
-            tokens_seen = step * tokens_per_iter
 
     # bit confusing: we want to make sure to eval on 0th iteration
     # but also after the very last iteration. so we loop for step <= num_iterations
@@ -336,10 +330,7 @@ for step in range(config.num_iterations + 1):
         
     model.zero_grad(set_to_none=True)
     train_loss_accum += train_loss.item()
-    train_loss_count += 1
-
-    if args.debug and dist.get_rank() == 0:
-        register_hooks(raw_model)
+    train_log_count += 1
     
     #dist.all_reduce(train_loss, op=dist.ReduceOp.AVG) # all-reducing the training loss would be more correct in terms of logging, but slower
     if master_process and step % config.train_loss_every == 0:# within the main training loop, after logging validation loss or training loss
@@ -351,14 +342,25 @@ for step in range(config.num_iterations + 1):
         interval_time_ms = interval_start_event.elapsed_time(interval_end_event)
         intervals.append(interval_time_ms)
         
-        avg_train_loss = train_loss_accum / train_loss_count
-        
         avg_time_per_step = sum(intervals[-10:])
-        estimated_total_time = avg_time_per_step * (config.num_iterations - step) / 1e4
+        estimated_total_time = avg_time_per_step * (config.num_iterations - step) / config.train_loss_every / 1e4
+        
+        # compute the averages
+        avg_train_loss = train_loss_accum / max(1, train_log_count)
+        avg_val_loss   = val_loss_accum   / max(1, val_log_count)
+
+        # log
+        tokens_seen = step * tokens_per_iter
+        writer.add_scalar('Loss/Train',      avg_train_loss, tokens_seen)
+        writer.add_scalar('Loss/Validation', avg_val_loss,   tokens_seen)
         print(f"step {step} ({interval_time_ms:.0f}ms): {tokens_seen/1e6:.2f}M tokens seen, train loss = {avg_train_loss:.4f}, val loss = {val_loss:.4f}, ETA = {estimated_total_time:.0f}s")
-        writer.add_scalar('Loss/Train', avg_train_loss, tokens_seen)
+        
+        # reset accumulators
         train_loss_accum = 0.0
-        train_loss_count = 0
+        train_log_count  = 0
+        val_loss_accum   = 0.0
+        val_log_count    = 0
+
     
         if master_process and (last_step or (config.save_every > 0 and step % config.save_every == 0)):
             # save the state of the training process
@@ -366,20 +368,20 @@ for step in range(config.num_iterations + 1):
             torch.save(log, 'ckpts/%s_state_step%06d.pt' % (run_id, step))
             # start the clock again
 
-        if config.generate_every and master_process and ((step) % config.generate_every == 0):
+        if config.gen_every and master_process and ((step) % config.gen_every == 0):
             # Use a fixed prompt or context for generation
             prompt = "Once upon a time in a"  # Customize as per your dataset
             context = encode_text(tokenizer,prompt, device)
             
             # Generate text
-            generated_tokens = raw_model.generate_text(context, max_length=50, temperature=1.0, top_k=50)
+            generated_tokens = raw_model.generate_text(context, max_length=config.gen_lenght, temperature=1.0, top_k=50)
             generated_text = decode_tokens(tokenizer, generated_tokens[0])
             
             # Log the generated text to TensorBoard
             writer.add_text(f"Generated_Text/Step_{step}", generated_text, step)
             
             # Optionally log to console for immediate feedback
-            print(f"Generated Text: \n{generated_text}")
+            print(f"\nGenerated Text: \n{generated_text}\n")
         
         interval_start_event.record()
         
