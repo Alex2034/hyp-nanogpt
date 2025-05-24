@@ -66,5 +66,5 @@
         121,
         122
     ],
-    "model_max_length": 512
+    "model_max_length": 1000000000
 }

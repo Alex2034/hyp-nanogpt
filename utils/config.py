@@ -4,6 +4,7 @@ from dataclasses import dataclass
 class Config:
     # Data hyperparams
     test_run: bool = False
+    debug: bool = False
     data_path: str = "data/fineweb10B"
     input_bin: str = ""
     input_val_bin: str = ""
@@ -19,7 +20,8 @@ class Config:
     generate_every: int = 0
     train_loss_every: int = 10
     val_loss_every: int = 10
-    val_tokens: int = 10_485_760
+    val_tokens: int = None # 10_485_760
+    val_tokens_frac: float = 1. # 10_485_760
     save_every: int = 0
     # Model architecture
     vocab_size: int = 50304

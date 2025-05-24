@@ -40,10 +40,12 @@ def load_tokenizer(save_directory):
     return tokenizer
 
 def main():
-    # Specify the input text file
-    input_file_path = "input.txt"
+    # Get the directory where this script is located
+    script_dir = Path(__file__).parent
+    # Specify the input text file relative to the script directory
+    input_file_path = script_dir / "input.txt"
     
-    if not os.path.exists(input_file_path):
+    if not input_file_path.exists():
         raise FileNotFoundError(f"{input_file_path} not found. Please ensure the file exists.")
     
     # Read the input text
@@ -65,7 +67,7 @@ def main():
         print(f"'{token}': {frequencies[token]}")
     
     # Save the tokenizer configuration and frequencies
-    save_directory = Path(__file__).parent
+    save_directory = script_dir
     save_tokenizer(tokenizer, save_directory)
     
     # ---- New Section: Create and save train.bin and val.bin ----
@@ -83,10 +85,8 @@ def main():
     val_ids = np.array(val_ids, dtype=np.uint16)
     
     # Save the numpy arrays to binary files in the same save directory
-    train_bin_path = os.path.join(save_directory, "train.bin")
-    val_bin_path = os.path.join(save_directory, "val.bin")
-    # train_ids.tofile(train_bin_path)
-    # val_ids.tofile(val_bin_path)
+    train_bin_path = save_directory / "train.bin"
+    val_bin_path = save_directory / "val.bin"
 
     def save_with_header(filename, ids):
         header = np.zeros(256, dtype=np.int32)

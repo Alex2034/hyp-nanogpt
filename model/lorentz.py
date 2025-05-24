@@ -64,7 +64,7 @@ class LorentzManifold(Manifold):
 
     def distance(self, u, v):
         d = -LorentzDot.apply(u, v)
-        d.data.clamp_(min=1)
+        d.data.clamp_(min=1 + self.eps)
         return acosh(d, self._eps)
 
     def norm(self, u):
