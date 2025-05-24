@@ -354,7 +354,7 @@ for step in range(config.num_iterations + 1):
         avg_train_loss = train_loss_accum / train_loss_count
         
         avg_time_per_step = sum(intervals[-10:])
-        estimated_total_time = avg_time_per_step * config.num_iterations / 1e4
+        estimated_total_time = avg_time_per_step * (config.num_iterations - step) / 1e4
         print(f"step {step} ({interval_time_ms:.0f}ms): {tokens_seen/1e6:.2f}M tokens seen, train loss = {avg_train_loss:.4f}, val loss = {val_loss:.4f}, ETA = {estimated_total_time:.0f}s")
         writer.add_scalar('Loss/Train', avg_train_loss, tokens_seen)
         train_loss_accum = 0.0
@@ -379,7 +379,7 @@ for step in range(config.num_iterations + 1):
             writer.add_text(f"Generated_Text/Step_{step}", generated_text, step)
             
             # Optionally log to console for immediate feedback
-            print(f"[Step {step}] Generated Text: {generated_text}")
+            print(f"Generated Text: \n{generated_text}")
         
         interval_start_event.record()
         
