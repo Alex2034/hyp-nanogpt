@@ -53,23 +53,22 @@ torch.manual_seed(config.seed)
 torch.cuda.manual_seed_all(config.seed)
 
 if "shakespeare" in config.data_path:
-    from data.shakespeare_char.CharTokenizer import CharacterTokenizer
     dataset_name = "shakespeare_char"
+    from data.shakespeare_char.CharTokenizer import CharacterTokenizer
     tokenizer = CharacterTokenizer.from_pretrained(save_directory="data/shakespeare_char/")
     config.vocab_size = tokenizer.vocab_size
 elif "tinystories_char" in config.data_path:
     dataset_name = "tinystories_char"
-    tokenizer = PreTrainedTokenizerFast(tokenizer_file="data/tinystories_char/char_tokenizer.json")
+    from data.shakespeare_char.CharTokenizer import CharacterTokenizer
+    tokenizer = CharacterTokenizer.from_pretrained(save_directory="data/tinystories_char/")
     config.vocab_size = tokenizer.vocab_size
+    # tokenizer = PreTrainedTokenizerFast(tokenizer_file="data/tinystories_char/char_tokenizer.json")
+    # config.vocab_size = tokenizer.vocab_size
 elif "tinystories" in config.data_path:
     dataset_name = "tinystories"
-    tokenizer = PreTrainedTokenizerFast(
-        tokenizer_file=os.path.join(config.data_path, "tinystories_tokenizer.json"),
-        eos_token="<|endoftext|>",
-        unk_token="[UNK]",
-        pad_token="[PAD]",
-    )
-    config.vocab_size = tokenizer.vocab_size
+    tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+    tokenizer.eos_token = "<|endoftext|>"
+    tokenizer.pad_token = tokenizer.eos_token
 elif "fineweb" in config.data_path:
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
     tokenizer.eos_token = "<|endoftext|>"
@@ -82,7 +81,7 @@ else:
     raise ValueError("Incorrect data_path")
 
 def encode_text(tokenizer, text, device):
-    return tokenizer.encode(text, return_tensors="pt").to(device)
+    return tokenizer.encode(text, add_special_tokens=False, return_tensors="pt").to(device)
 
 def decode_tokens(tokenizer, tokens):
     # For character-level tokenizer, join characters without spaces
@@ -340,10 +339,10 @@ for step in range(config.num_iterations + 1):
 
         # Calculate elapsed time in milliseconds
         interval_time_ms = interval_start_event.elapsed_time(interval_end_event)
-        intervals.append(interval_time_ms)
+        intervals.append(interval_time_ms / config.train_loss_every)
         
-        avg_time_per_step = sum(intervals[-10:])
-        estimated_total_time = avg_time_per_step * (config.num_iterations - step) / config.train_loss_every / 1e4
+        avg_time_per_step = sum(intervals[-10:]) / 10.
+        estimated_total_time = avg_time_per_step * (config.num_iterations - step) / 1e3
         
         # compute the averages
         avg_train_loss = train_loss_accum / max(1, train_log_count)

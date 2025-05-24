@@ -53,10 +53,7 @@ class Config:
             self.n_embd = self.n_heads * self.head_dim
 
         # Decide how to set the input bins.
-        if "tinystories" in self.data_path:
-            self.input_bin = f"{self.data_path}/train.bin"
-            self.input_val_bin = f"{self.data_path}/val.bin"
-        if "shakespeare" in self.data_path:
+        if ("tinystories" in self.data_path) or ("shakespeare" in self.data_path):
             self.input_bin = f"{self.data_path}/train.bin"
             self.input_val_bin = f"{self.data_path}/val.bin"
         elif "finewebedu" in self.data_path:
