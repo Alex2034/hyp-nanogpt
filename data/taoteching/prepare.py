@@ -3,9 +3,8 @@ import json
 from pathlib import Path
 import collections
 import numpy as np
-from datasets import load_dataset
 
-from CharTokenizer import CharacterTokenizer
+from tokenizers.char_tokenizer import CharacterTokenizer
 
 def build_tokenizer(text, model_max_length=int(1e9)):
     # Extract unique characters from the text and sort them
@@ -22,6 +21,7 @@ def save_tokenizer(tokenizer, save_directory):
     os.makedirs(save_directory, exist_ok=True)
     tokenizer.save_pretrained(save_directory)
     
+    # Save token frequencies if available
     if hasattr(tokenizer, "token_frequencies"):
         freq_path = os.path.join(save_directory, "freq.json")
         with open(freq_path, "w") as f:
@@ -40,21 +40,25 @@ def load_tokenizer(save_directory):
     return tokenizer
 
 def main():
+    # Get the directory where this script is located
     script_dir = Path(__file__).parent
+    # Specify the input text file relative to the script directory
+    input_file_path = script_dir / "input.txt"
     
-    train_dataset = load_dataset("roneneldan/TinyStories", split="train")
-    val_dataset = load_dataset("roneneldan/TinyStories", split="validation")
-    train_texts = ''.join(train_dataset["text"])
-    val_texts   = ''.join(val_dataset["text"])
+    if not input_file_path.exists():
+        raise FileNotFoundError(f"{input_file_path} not found. Please ensure the file exists.")
     
-    print(f"Length of train text: {len(train_texts)} characters")
-    print(f"Length of val text: {len(val_texts)} characters")
+    # Read the input text
+    with open(input_file_path, "r", encoding="utf-8") as f:
+        text = f.read()
+    
+    print(f"Length of text: {len(text)} characters")
     
     # Build the tokenizer using the full text
-    tokenizer = build_tokenizer(train_texts)
+    tokenizer = build_tokenizer(text)
     
     # Compute and attach token frequencies
-    frequencies = compute_token_frequencies(train_texts)
+    frequencies = compute_token_frequencies(text)
     tokenizer.token_frequencies = frequencies
     
     # Optionally display token frequencies (sorted alphabetically)
@@ -66,9 +70,15 @@ def main():
     save_directory = script_dir
     save_tokenizer(tokenizer, save_directory)
     
+    # ---- New Section: Create and save train.bin and val.bin ----
+    # Split the text into training and validation sets (90/10 split)
+    n = len(text)
+    train_text = text[: int(n * 0.9)]
+    val_text = text[int(n * 0.9):]
+    
     # Tokenize each split using the tokenizer's encode method
-    train_ids = tokenizer.encode(train_texts)
-    val_ids = tokenizer.encode(val_texts)
+    train_ids = tokenizer.encode(train_text)
+    val_ids = tokenizer.encode(val_text)
     
     # Convert the lists of token IDs to numpy arrays (using uint16)
     train_ids = np.array(train_ids, dtype=np.uint16)

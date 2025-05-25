@@ -67,7 +67,7 @@ elif args.version == "100B":
     remote_name = "sample-100BT"
 
 # create the cache the local directory if it doesn't exist yet
-DATA_CACHE_DIR = os.path.join(os.path.dirname(__file__), local_dir)
+DATA_CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), local_dir)
 os.makedirs(DATA_CACHE_DIR, exist_ok=True)
 
 # download the dataset

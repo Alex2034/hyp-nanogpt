@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import os
 import json
 import numpy as np
 from pathlib import Path
@@ -19,7 +18,7 @@ def save_with_header(path: Path, ids: np.ndarray):
         f.write(ids.tobytes())
 
 def tokenize_split(tokenizer, texts, split_name):
-    print(f"[+] Tokenizing {split_name} ({len(texts)} examples)")
+    print(f"Tokenizing {split_name} ({len(texts)} examples)")
     all_ids = []
     for txt in tqdm(texts, desc=split_name, unit="ex"):
         ids = tokenizer.encode(txt, add_special_tokens=False)
@@ -29,28 +28,28 @@ def tokenize_split(tokenizer, texts, split_name):
 
 def main():
     out_dir = Path(__file__).parent
-    print("[+] Loading TinyStories dataset")
+    print("Loading TinyStories dataset")
     ds_train = load_dataset("roneneldan/TinyStories", split="train")
     ds_val   = load_dataset("roneneldan/TinyStories", split="validation")
 
-    print("[+] Loading GPT-2 tokenizer")
+    print("Loading GPT-2 tokenizer")
     tok = GPT2TokenizerFast.from_pretrained("gpt2")
     tok.pad_token = tok.eos_token
 
     train_ids = tokenize_split(tok, ds_train["text"], "train")
     val_ids   = tokenize_split(tok, ds_val["text"],   "val")
 
-    print("[+] Computing token frequencies on train split")
+    print("Computing token frequencies on train split")
     freq = Counter(train_ids.tolist())
     freq_path = out_dir / "freq.json"
     with open(freq_path, "w") as f:
         json.dump(freq, f, indent=2)
-    print(f"    • {len(freq)} unique tokens → saved to {freq_path.name}")
+    print(f"{len(freq)} unique tokens saved to {freq_path.name}")
 
-    print("[+] Writing binary files")
+    print("Writing binary files")
     save_with_header(out_dir / "train.bin", train_ids)
     save_with_header(out_dir / "val.bin",   val_ids)
-    print("✅ Done.")
+    print("Done.")
 
 if __name__ == "__main__":
     main()
