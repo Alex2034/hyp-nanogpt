@@ -2,6 +2,7 @@ pylog124M/
 experiments/
 __pycache__/
 data/**/*.bin
+data/cn_wiki/input.txt
 last_*
 logs_old/
 logs/
