@@ -4,7 +4,7 @@ SEEDS=(0)
 for seed in "${SEEDS[@]}"; do
     OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 torchrun --standalone --nproc_per_node=1 \
         train_gpt2_min.py \
-        --data_path "data/tinystories" \
+        --data_path "data/finewebedu10B" \
         --device_batch_size 32 \
         --batch_size 32 \
         --num_iterations 4001 \

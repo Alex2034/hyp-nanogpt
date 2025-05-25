@@ -202,19 +202,17 @@ if master_process:
 if master_process:
     def create_run_id(config, dataset_name, timestamp):
         """Create a run identifier."""
-        # Aliases for common configurations
         dataset_aliases = {
             'shakespeare_char': 'sh',
             'tinystories_char': 'tsc',
             'tinystories': 'ts',
-            'fineweb': 'fw'
+            'fineweb': 'fw',
+            'finewebedu': 'fwe'
         }
         mode_aliases = {
             'euc': 'e',
             'hyp': 'h'
         }
-        
-        # Get date and time components
         date = timestamp.strftime('%m.%d') 
         seconds_since_midnight = (timestamp - timestamp.replace(hour=0, minute=0, second=0, microsecond=0)).seconds
         
@@ -229,7 +227,6 @@ if master_process:
             if config.k_lr:
                 hyp_params += f"_lr{config.k_lr:.0e}"  
         
-        # Combine all components
         run_id = f"{seconds_since_midnight}_{dataset_aliases[dataset_name]}_{arch}{hyp_params}_s{config.seed}"
         return date, run_id
 
