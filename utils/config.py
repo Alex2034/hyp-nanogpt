@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import os
 
 @dataclass
 class Config:
@@ -8,7 +9,6 @@ class Config:
     data_path: str = "data/fineweb10B"
     input_bin: str = ""
     input_val_bin: str = ""
-    num_vocab: int = 50304
     sequence_length: int = 1024
     # Optimization hyperparams
     batch_size: int = 512     # global batch size (across devices)
@@ -19,10 +19,11 @@ class Config:
     # Evaluation/logging
     gen_every: int = 0
     gen_lenght: int = 100
+    gen_prompt: str = "Once "
     train_loss_every: int = 10
     val_loss_every: int = 10
     val_tokens: int = None # 10_485_760
-    val_tokens_frac: float = 1. # 10_485_760
+    val_tokens_frac: float = 1. 
     save_every: int = 0
     # Model architecture
     vocab_size: int = 50304
@@ -46,21 +47,23 @@ class Config:
     def __post_init__(self):
         """
         Dynamically set up paths and possibly recalculate n_embd from n_heads, head_dim.
-        You can also unify any validation logic here.
         """
         # If you want n_embd to be set from n_heads * head_dim:
         if self.head_dim:
             self.n_embd = self.n_heads * self.head_dim
 
-        # Decide how to set the input bins.
-        if ("tinystories" in self.data_path) or ("shakespeare" in self.data_path):
+        dataset_name = os.path.basename(self.data_path)
+
+        if dataset_name in ["tinystories", "shakespeare_char", "tinystories_char", "taoteching"]:
             self.input_bin = f"{self.data_path}/train.bin"
             self.input_val_bin = f"{self.data_path}/val.bin"
-        elif "finewebedu" in self.data_path:
+
+        elif dataset_name == "finewebedu":
             self.input_bin = f"{self.data_path}/finewebedu_train_*.bin"
             self.input_val_bin = f"{self.data_path}/finewebedu_val_*.bin"
-        elif "fineweb" in self.data_path:
+
+        elif dataset_name == "fineweb":
             self.input_bin = f"{self.data_path}/fineweb_train_*.bin"
             self.input_val_bin = f"{self.data_path}/fineweb_val_*.bin"
         else:
-            raise ValueError("Specify a proper data path (contains 'tinystories' or 'fineweb')")
+            raise ValueError(f"Unrecognized dataset name: {dataset_name}")

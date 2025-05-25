@@ -4,7 +4,7 @@ from pathlib import Path
 import collections
 import numpy as np
 
-from tokenizers.char_tokenizer import CharacterTokenizer
+from custom_tokenizers.char_tokenizer import CharacterTokenizer
 
 def build_tokenizer(text, model_max_length=int(1e9)):
     # Extract unique characters from the text and sort them

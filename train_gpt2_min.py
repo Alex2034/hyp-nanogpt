@@ -11,8 +11,9 @@ import torch.distributed as dist
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from torch.nn.parallel import DistributedDataParallel as DDP
-from transformers import GPT2TokenizerFast, PreTrainedTokenizerFast # type: ignore #
+from transformers import GPT2TokenizerFast
 
+from custom_tokenizers.char_tokenizer import CharacterTokenizer
 from model.rsgd import RiemannianSGD
 from model.model import GPT
 from utils.muon import Muon
@@ -30,6 +31,7 @@ parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--device_batch_size", type=int, default=32)
 parser.add_argument("--num_iterations", type=int, default=4)
 parser.add_argument("--gen_every", type=int, default=0)
+parser.add_argument("--gen_prompt", type=str, default="Once ")
 parser.add_argument("--train_loss_every", type=int, default=2)
 parser.add_argument("--val_loss_every", type=int, default=2)
 parser.add_argument("--head_dim", type=int, default=16)
@@ -52,33 +54,25 @@ np.random.seed(config.seed)
 torch.manual_seed(config.seed)
 torch.cuda.manual_seed_all(config.seed)
 
-if "shakespeare" in config.data_path:
-    dataset_name = "shakespeare_char"
-    from data.shakespeare_char.CharTokenizer import CharacterTokenizer
-    tokenizer = CharacterTokenizer.from_pretrained(save_directory="data/shakespeare_char/")
+char_datasets = {"shakespeare_char", "tinystories_char", "taoteching"}
+gpt2_datasets = {"tinystories", "fineweb", "finewebedu"}
+
+# Normalize dataset name from the data path
+dataset_name = os.path.basename(config.data_path)
+
+if dataset_name in char_datasets:
+    tokenizer = CharacterTokenizer.from_pretrained(save_directory=config.data_path)
     config.vocab_size = tokenizer.vocab_size
-elif "tinystories_char" in config.data_path:
-    dataset_name = "tinystories_char"
-    from data.shakespeare_char.CharTokenizer import CharacterTokenizer
-    tokenizer = CharacterTokenizer.from_pretrained(save_directory="data/tinystories_char/")
-    config.vocab_size = tokenizer.vocab_size
-    # tokenizer = PreTrainedTokenizerFast(tokenizer_file="data/tinystories_char/char_tokenizer.json")
-    # config.vocab_size = tokenizer.vocab_size
-elif "tinystories" in config.data_path:
-    dataset_name = "tinystories"
+
+elif dataset_name in gpt2_datasets:
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
     tokenizer.eos_token = "<|endoftext|>"
     tokenizer.pad_token = tokenizer.eos_token
-elif "fineweb" in config.data_path:
-    tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
-    tokenizer.eos_token = "<|endoftext|>"
-    tokenizer.pad_token = tokenizer.eos_token
-    if "finewebedu" in config.data_path:
-        dataset_name = "finewebedu"
-    else:
-        dataset_name = "fineweb"
+    config.vocab_size = tokenizer.vocab_size
+
 else:
-    raise ValueError("Incorrect data_path")
+    raise ValueError(f"Unsupported dataset: {dataset_name}")
+
 
 def encode_text(tokenizer, text, device):
     return tokenizer.encode(text, add_special_tokens=False, return_tensors="pt").to(device)
@@ -206,6 +200,7 @@ if master_process:
             'shakespeare_char': 'sh',
             'tinystories_char': 'tsc',
             'tinystories': 'ts',
+            'taoteching': 'tao',
             'fineweb': 'fw',
             'finewebedu': 'fwe'
         }
@@ -357,26 +352,18 @@ for step in range(config.num_iterations + 1):
         val_loss_accum   = 0.0
         val_log_count    = 0
 
-    
         if master_process and (last_step or (config.save_every > 0 and step % config.save_every == 0)):
-            # save the state of the training process
+
             log = dict(step=step, model=raw_model.state_dict(), optimizers=[opt.state_dict() for opt in optimizers])
             torch.save(log, 'ckpts/%s_state_step%06d.pt' % (run_id, step))
-            # start the clock again
 
         if config.gen_every and master_process and ((step) % config.gen_every == 0):
-            # Use a fixed prompt or context for generation
-            prompt = "Once upon a time in a"  # Customize as per your dataset
-            context = encode_text(tokenizer,prompt, device)
+            context = encode_text(tokenizer, config.gen_prompt, device)
             
-            # Generate text
             generated_tokens = raw_model.generate_text(context, max_length=config.gen_lenght, temperature=1.0, top_k=50)
             generated_text = decode_tokens(tokenizer, generated_tokens[0])
             
-            # Log the generated text to TensorBoard
             writer.add_text(f"Generated_Text/Step_{step}", generated_text, step)
-            
-            # Optionally log to console for immediate feedback
             print(f"\nGenerated Text: \n{generated_text}\n")
         
         interval_start_event.record()
@@ -390,8 +377,6 @@ if master_process:
     print(f"Total training time: {total_time_s:.2f}s")
     print(f"peak memory consumption: {torch.cuda.max_memory_allocated() // 1024 // 1024} MiB")
 
-# -------------------------------------------------------------------------
-# clean up nice
 if master_process:
     writer.close()
 

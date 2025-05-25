@@ -4,17 +4,18 @@ SEEDS=(0)
 for seed in "${SEEDS[@]}"; do
     OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 torchrun --standalone --nproc_per_node=1 \
         train_gpt2_min.py \
-        --data_path "data/finewebedu10B" \
-        --device_batch_size 32 \
-        --batch_size 32 \
-        --num_iterations 4001 \
-        --gen_every 500 \
+        --data_path "data/taoteching" \
+        --gen_prompt "Ch. 1. 1. The Tao" \
+        --device_batch_size 4 \
+        --batch_size 4 \
+        --num_iterations 10001 \
+        --gen_every 1000 \
         --train_loss_every 20 \
         --val_loss_every 20 \
-        --n_heads 8 \
-        --n_layers 8 \
+        --n_heads 6 \
+        --n_layers 6 \
         --head_dim 16 \
-        --sequence_length 1024 \
+        --sequence_length 256 \
         --attn_mode "euc" \
         --head_mode "euc" \
         --curvature 1. \
