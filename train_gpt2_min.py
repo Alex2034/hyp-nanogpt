@@ -54,7 +54,7 @@ np.random.seed(config.seed)
 torch.manual_seed(config.seed)
 torch.cuda.manual_seed_all(config.seed)
 
-char_datasets = {"shakespeare_char", "tinystories_char", "taoteching"}
+char_datasets = {"shakespeare_char", "tinystories_char", "taoteching", "cn_wiki"}
 gpt2_datasets = {"tinystories", "fineweb", "finewebedu"}
 
 # Normalize dataset name from the data path
@@ -201,6 +201,7 @@ if master_process:
             'tinystories_char': 'tsc',
             'tinystories': 'ts',
             'taoteching': 'tao',
+            'cn_wiki': 'cn',
             'fineweb': 'fw',
             'finewebedu': 'fwe'
         }

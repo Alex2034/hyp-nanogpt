@@ -54,7 +54,7 @@ class Config:
 
         dataset_name = os.path.basename(self.data_path)
 
-        if dataset_name in ["tinystories", "shakespeare_char", "tinystories_char", "taoteching"]:
+        if dataset_name in ["tinystories", "shakespeare_char", "tinystories_char", "taoteching", "cn_wiki"]:
             self.input_bin = f"{self.data_path}/train.bin"
             self.input_val_bin = f"{self.data_path}/val.bin"
 
