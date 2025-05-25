@@ -37,84 +37,87 @@ def apply_rotary_emb(x, cos, sin):
     return torch.cat([y1, y2], 3).type_as(x)
 
 
-def custom_attention(query, key, value, curvature=None, 
-                                 mode='euc', dropout_p=0.0,
-                                 is_causal=False, scale=None,
-                                 eps=1e-6, p=2) -> torch.Tensor:
-    L, S = query.size(-2), key.size(-2)
-    scale_factor = 1 / math.sqrt(query.size(-1)) if scale is None else scale
-    attn_bias = torch.zeros(L, S, dtype=query.dtype, device=query.device)
+class CustomSelfAttention(nn.Module):
 
-    if is_causal:
-        temp_mask = torch.ones(L, S, dtype=torch.bool).tril(diagonal=0).to(attn_bias.device)
-        attn_bias.masked_fill_(temp_mask.logical_not(), float("-inf"))
-
-    if mode == 'euc':
-        attn_weight = query @ key.transpose(-2, -1) * scale_factor
-    elif mode == 'hyp':
-        assert curvature is not None
-        lq = project(query, k=curvature, dim=-1).unsqueeze(-2)
-        lk = project(key, k=curvature, dim=-1).unsqueeze(-3)
-        dis = distance(lq, lk, k=curvature, dim=-1)
-        attn_weight = 1 / (eps + dis**p)
-
-    attn_weight += attn_bias
-    attn_weight = torch.softmax(attn_weight, dim=-1)
-    attn_weight = torch.dropout(attn_weight, dropout_p, train=True)
-    return attn_weight @ value
-
-# - custom_attention: computes causal attention (optionally in 'hyp' mode).
-
-class JointSelfAttention(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.mode = config.attn_mode
         self.n_heads = config.n_heads
         self.n_embd = config.n_embd
+        assert self.n_embd % self.n_heads == 0
         self.head_dim = self.n_embd // self.n_heads
-        assert self.n_embd % self.n_heads == 0, "Embedding dimension must be divisible by number of heads"
-        
-        # Combined QKV projection (more efficient than separate projections)
         self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd, bias=False)
-        
-        # Output projection
         self.c_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
         self.c_proj.weight.data.zero_()
         self.rotary = Rotary(self.head_dim)
+        self.attn_mode = config.attn_mode
+        # self.attn_mode_set = False
         
-        if self.mode == 'hyp':
-            if not getattr(config, 'k_lr', False):
-                self.register_buffer('k', torch.tensor(float(config.curvature)))
+        if self.attn_mode == 'hyp':
+            if config.k_lr == 0.:
+                # If curvature is fixed, set self.c as a constant tensor
+                self.register_buffer('c', torch.tensor(float(config.curvature)))
+            elif config.k_lr > 0:
+                # If curvature is learned, initialize self.c as curvature * exp(x) where x ~ N(0, sigma^2)
+                x = torch.randn(1, config.n_heads, 1, 1, device=self.c_attn.weight.device) * config.sigma
+                init_c = torch.exp(x) * config.curvature
+                self.c = nn.Parameter(init_c)
             else:
-                init_k = torch.exp(torch.randn(1, 1, self.n_heads, 1)) * config.curvature
-                self.k = nn.Parameter(init_k)
+                raise ValueError(f"Invalid curvature k_lr")
+            
+            # Register 'p' and 'eps' as buffers if they are fixed constants
+            self.register_buffer('p', torch.tensor(2.0))
+            self.register_buffer('eps', torch.tensor(1e-3))
+        
+#         if not self.flash:
+#             print("WARNING: using slow attention. Flash Attention requires PyTorch >= 2.0")
+            # causal mask to ensure that attention is only applied to the left in the input sequence
+        self.register_buffer("bias", torch.tril(torch.ones(config.sequence_length, config.sequence_length))
+                                        .view(1, 1, config.sequence_length, config.sequence_length))
 
     def forward(self, x):
-        B, T, C = x.size()
-        
-        qkv = self.c_attn(x)  
-        q, k, v = qkv.split(self.n_embd, dim=2)
-        
-        # Reshape and transpose: (B, T, n_embd) -> (B, n_heads, T, head_dim)
-        q = q.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
-        k = k.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
-        v = v.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
-        
-        # Get rotary parameters and apply RMS normalization
+        B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
+
+        # calculate query, key, values for all heads in batch and move head forward to be the batch dim
+        q, k, v  = self.c_attn(x).split(self.n_embd, dim=2)
+        k = k.view(B, T, self.n_heads, C // self.n_heads).transpose(1, 2) # (B, nh, T, hs)
+        q = q.view(B, T, self.n_heads, C // self.n_heads).transpose(1, 2) # (B, nh, T, hs)
+        v = v.view(B, T, self.n_heads, C // self.n_heads).transpose(1, 2) # (B, nh, T, hs)
         cos, sin = self.rotary(q)
-        q = F.rms_norm(q, (q.size(-1),))
-        k = F.rms_norm(k, (k.size(-1),))
-        q = apply_rotary_emb(q, cos, sin)
-        k = apply_rotary_emb(k, cos, sin)
-        
-        if self.mode == 'hyp':
-            y = custom_attention(q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2),
-                                 is_causal=True, mode='hyp', curvature=self.k)
-        else:
-            y = custom_attention(q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2),
-                                 is_causal=True)
+        q, k = F.rms_norm(q, (q.size(-1),)), F.rms_norm(k, (k.size(-1),))
+        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin) 
+        # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
+#         if self.flash:
+#             # efficient attention using Flash Attention CUDA kernels
+#             y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout if self.training else 0, is_causal=True)
+        if self.attn_mode == 'euc':
+#             if not self.attn_mode_set:
+#                 print('Entered Original mode', flush = True)
+#                 self.attn_mode_set = True
+            att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
+            att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
+            att = F.softmax(att, dim=-1)
+            y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+
+        elif self.attn_mode == 'hyp': 
+            # if not self.attn_mode_set:
+            #     # print('Entered Hyperbolic mode', flush = True)
+            #     print('Curvature = ', self.c)
+            #     self.attn_mode_set = True
+
+            lq = project(q, k=self.c, dim=-1).unsqueeze(-2)
+            lk = project(k, k=self.c, dim=-1).unsqueeze(-3)
+
+            dist = distance(lq, lk, k=self.c, dim=-1)
+
+            wei = 1 / (self.eps + dist**self.p)
+            wei = wei.masked_fill(self.bias[:,:,:T,:T] == 0, 0.) 
+            wei = wei / wei.sum(dim = -1, keepdim = True)
+            # wei = F.softmax(wei, dim=-1) # (B, T, T)
+            y = wei @ v
             
-        y = y.transpose(1, 2).contiguous().view(B, T, C)
+        y = y.transpose(1, 2).contiguous().view(B, T, C) # re-assemble all head outputs side by side
+        
+        # output projection
         y = self.c_proj(y)
         return y
 
@@ -170,7 +173,7 @@ class Block(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        self.attn = CausalSelfAttention(config)
+        self.attn = CustomSelfAttention(config)
         self.mlp = MLP(config)
 
     def forward(self, x):
@@ -301,70 +304,82 @@ class GPT(nn.Module):
         
 ## OLD
         
-# class CausalSelfAttention(nn.Module):
+# def custom_attention(query, key, value, curvature=None, 
+#                                  mode='euc', dropout_p=0.0,
+#                                  is_causal=False, scale=None,
+#                                  eps=1e-6, p=2) -> torch.Tensor:
+#     L, S = query.size(-2), key.size(-2)
+#     scale_factor = 1 / math.sqrt(query.size(-1)) if scale is None else scale
+#     attn_bias = torch.zeros(L, S, dtype=query.dtype, device=query.device)
+
+#     if is_causal:
+#         temp_mask = torch.ones(L, S, dtype=torch.bool).tril(diagonal=0).to(attn_bias.device)
+#         attn_bias.masked_fill_(temp_mask.logical_not(), float("-inf"))
+
+#     if mode == 'euc':
+#         attn_weight = query @ key.transpose(-2, -1) * scale_factor
+#     elif mode == 'hyp':
+#         assert curvature is not None
+#         lq = project(query, k=curvature, dim=-1).unsqueeze(-2)
+#         lk = project(key, k=curvature, dim=-1).unsqueeze(-3)
+#         dis = distance(lq, lk, k=curvature, dim=-1)
+#         attn_weight = 1 / (eps + dis**p)
+
+#     attn_weight += attn_bias
+#     attn_weight = torch.softmax(attn_weight, dim=-1)
+#     attn_weight = torch.dropout(attn_weight, dropout_p, train=True)
+#     return attn_weight @ value
+
+# # - custom_attention: computes causal attention (optionally in 'hyp' mode).
+
+# class JointSelfAttention(nn.Module):
 #     def __init__(self, config):
 #         super().__init__()
+#         self.attn_mode = config.attn_mode
 #         self.n_heads = config.n_heads
 #         self.n_embd = config.n_embd
 #         self.head_dim = self.n_embd // self.n_heads
-#         assert self.n_embd % self.n_heads == 0
-#         self.c_q = nn.Linear(self.n_embd, self.n_embd, bias=False)
-#         self.c_k = nn.Linear(self.n_embd, self.n_embd, bias=False)
-#         self.c_v = nn.Linear(self.n_embd, self.n_embd, bias=False)
-#         # output projection
-#         self.c_proj = nn.Linear(self.n_embd, self.n_embd, bias=False)
-#         self.c_proj.weight.data.zero_() # zero init suggested by @Grad62304977
-#         self.rotary = Rotary(self.head_dim)
-
-#     def forward(self, x):
-#         B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
-#         q = self.c_q(x).view(B, T, self.n_heads, self.head_dim)
-#         k = self.c_k(x).view(B, T, self.n_heads, self.head_dim)
-#         v = self.c_v(x).view(B, T, self.n_heads, self.head_dim)
-#         cos, sin = self.rotary(q)
-#         q, k = F.rms_norm(q, (q.size(-1),)), F.rms_norm(k, (k.size(-1),)) # QK norm suggested by @Grad62304977
-#         q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
-#         y = custom_attention(q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2), is_causal=True)
-#         y = y.transpose(1, 2).contiguous().view_as(x) # re-assemble all head outputs side by side
-#         y = self.c_proj(y)
-#         return y
-    
-# class HyperbolicSelfAttention(nn.Module):
-
-#     def __init__(self, config):
-#         super().__init__()
+#         assert self.n_embd % self.n_heads == 0, "Embedding dimension must be divisible by number of heads"
         
-#         self.n_heads = config.n_heads
-#         self.n_embd = config.n_embd
-#         self.head_dim = self.n_embd // self.n_heads
-#         assert self.n_embd % self.n_heads == 0
-        
-#         # key, query, value projections for all heads, but in a batch
+#         # Combined QKV projection (more efficient than separate projections)
 #         self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd, bias=False)
+        
+#         # Output projection
 #         self.c_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
+#         self.c_proj.weight.data.zero_()
 #         self.rotary = Rotary(self.head_dim)
         
-#         if not config.k_lr:
-#             self.register_buffer('k', torch.tensor(float(config.curvature)))
-#         else:
-#             x = torch.randn(1, 1, config.n_heads, 1, device=self.c_attn.weight.device)
-#             init_k = torch.exp(x) * config.curvature
-#             self.k = nn.Parameter(init_k)
+#         if self.attn_mode == 'hyp':
+#             if not getattr(config, 'k_lr', False):
+#                 self.register_buffer('k', torch.tensor(float(config.curvature)))
+#             else:
+#                 init_k = torch.exp(torch.randn(1, 1, self.n_heads, 1)) * config.curvature
+#                 self.k = nn.Parameter(init_k)
 
 #     def forward(self, x):
 #         B, T, C = x.size()
-
-#         q, k, v  = self.c_attn(x).split(self.n_embd, dim=2)
-#         k = k.view(B, T, self.n_heads, C // self.n_heads).transpose(1, 2)
-#         q = q.view(B, T, self.n_heads, C // self.n_heads).transpose(1, 2)
-#         v = v.view(B, T, self.n_heads, C // self.n_heads).transpose(1, 2)
-
-#         cos, sin = self.rotary(q) 
-#         q, k = F.rms_norm(q, (q.size(-1),)), F.rms_norm(k, (k.size(-1),))
-#         q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
-
-#         y = custom_attention(q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2), 
-#                              is_causal=True, mode='hyp', curvature=self.k)
+        
+#         qkv = self.c_attn(x)  
+#         q, k, v = qkv.split(self.n_embd, dim=2)
+        
+#         # Reshape and transpose: (B, T, n_embd) -> (B, n_heads, T, head_dim)
+#         q = q.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
+#         k = k.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
+#         v = v.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
+        
+#         # Get rotary parameters and apply RMS normalization
+#         cos, sin = self.rotary(q)
+#         q = F.rms_norm(q, (q.size(-1),))
+#         k = F.rms_norm(k, (k.size(-1),))
+#         q = apply_rotary_emb(q, cos, sin)
+#         k = apply_rotary_emb(k, cos, sin)
+        
+#         if self.attn_mode == 'hyp':
+#             y = custom_attention(q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2),
+#                                  is_causal=True, mode='hyp', curvature=self.k)
+#         else:
+#             y = custom_attention(q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2),
+#                                  is_causal=True)
             
 #         y = y.transpose(1, 2).contiguous().view(B, T, C)
 #         y = self.c_proj(y)

@@ -57,7 +57,6 @@ torch.cuda.manual_seed_all(config.seed)
 char_datasets = {"shakespeare_char", "tinystories_char", "taoteching", "cn_wiki"}
 gpt2_datasets = {"tinystories", "fineweb", "finewebedu"}
 
-# Normalize dataset name from the data path
 dataset_name = os.path.basename(config.data_path)
 
 if dataset_name in char_datasets:
@@ -116,14 +115,6 @@ if master_process:
     print(f"Validation DataLoader: {val_loader.ntok_total / 1e6:.2f}M tokens across {len(val_loader.files)} files.")
 x, y = train_loader.next_batch()
 
-    
-# def register_hooks(model):
-#     for name, module in model.named_modules():
-#         if hasattr(module, 'weight'):
-#             module.register_forward_hook(lambda m, i, o: print(f"[FWD] {name} output norm: {o.norm().item()}"))
-#             module.register_backward_hook(lambda m, grad_input, grad_output: print(f"[BWD] {name} grad_output norm: {grad_output[0].norm().item()}"))
-
-# Model setup
 model = GPT(config)  
 model = model.to(device)    
 
@@ -140,7 +131,7 @@ compile_time = start_event.elapsed_time(end_event)
 print(f"Model compiled in {compile_time:.1f}ms")
 
 model = DDP(model, device_ids=[ddp_local_rank])
-raw_model = model.module  # Always access raw model via .module
+raw_model = model.module  
 
 ctx = torch.amp.autocast(device_type='cuda', dtype=torch.float32)
 
@@ -158,7 +149,8 @@ optimizer_muon = Muon(matrix_params, lr=config.muon_lr, momentum=0.95)
 if config.head_mode == 'hyp':
         optimizer_head = RiemannianSGD(raw_model.lm_head.optim_params(), lr=config.head_lr)
 else:  # Euclidean head
-    optimizer_head = optim.SGD(raw_model.lm_head.parameters(), lr=config.head_lr)
+    optimizer_head = torch.optim.Adam(raw_model.lm_head.parameters(), lr=config.head_lr, betas=(0.8, 0.95), eps=1e-10, fused=True)
+ # optim.SGD(raw_model.lm_head.parameters(), lr=config.head_lr)
 
 optimizers = [optimizer_head, optimizer_muon, optimizer_wte]
 

@@ -37,6 +37,7 @@ class Config:
     head_mode: str = "euc"
     attn_mode: str = "euc"
     curvature: float = 1.0
+    sigma: float = 1.0
     k_lr: float = 0.0
     wte_lr: float = 0.6
     muon_lr: float = 0.05
