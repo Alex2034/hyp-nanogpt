@@ -198,6 +198,14 @@ def print_curvature_stats(blocks):
 def n_params(group):
     return sum(p.numel() for p in group)
 
+def grad_norm(params, norm_type=2):
+    params = [p for p in params if p.grad is not None]
+    if not params:
+        return 0.0
+    device = params[0].grad.device
+    norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in params]), norm_type)
+    return norm.item()
+
 if master_process:
     model_size = raw_model.model_size()
     print("\n=== Model ===")
@@ -346,6 +354,23 @@ for step in range(config.num_iterations + 1):
             # print(f"WARNING: Parameter {name} has no gradient. Skipping.")
             continue
         p.grad /= train_accumulation_steps
+    
+    # gradient norm monitoring
+    if step % config.train_loss_every == 0:
+        gn_curv   = grad_norm(curv_params)
+        gn_matrix = grad_norm(matrix_params)
+        gn_nonmat = grad_norm(non_matrix_params)
+        gn_wte    = grad_norm(wte_params)
+        gn_head   = grad_norm(head_params)
+
+        writer.add_scalar('grad_norm/curv',   gn_curv,   step)
+        writer.add_scalar('grad_norm/matrix', gn_matrix, step)
+        writer.add_scalar('grad_norm/non_mat', gn_nonmat, step)
+        writer.add_scalar('grad_norm/wte',    gn_wte,    step)
+        writer.add_scalar('grad_norm/head',   gn_head,   step)
+    
+    if step % (5*config.train_loss_every) == 0:
+        print(f"Grad norms: curv={gn_curv:.3g}  matrix={gn_matrix:.3g}  non_mat={gn_nonmat:.3g}  wte={gn_wte:.3g}  head={gn_head:.3g}")
 
     for opt, sched in zip(optimizers, schedulers):
         opt.step()
