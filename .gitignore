@@ -11,3 +11,4 @@ runs/
 rename_folders.py
 train_gpt2.py
 .nfs*
+*.txt

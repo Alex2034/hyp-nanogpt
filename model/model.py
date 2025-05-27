@@ -4,7 +4,7 @@ from torch import nn
 import torch.nn.functional as F
 
 from model.lorentz import LorentzManifold
-from model.lmath import project, distance
+from utils.lmath import project, distance
 
 
 class Rotary(torch.nn.Module):
