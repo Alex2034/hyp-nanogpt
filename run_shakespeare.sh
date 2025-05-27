@@ -1,9 +1,9 @@
 #!/bin/bash
-SEEDS=(0)
-MODES=('hyp')
+# SEEDS=(0)
+# MODES=('hyp')
 
-# SEEDS=(0 1 2 3 4)
-# MODES=('euc' 'hyp')
+SEEDS=(0 1 2 3 4)
+MODES=('euc' 'hyp')
 
 NAME='sh'
 

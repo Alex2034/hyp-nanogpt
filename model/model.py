@@ -98,10 +98,10 @@ class CustomSelfAttention(nn.Module):
             y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
 
         elif self.attn_mode == 'hyp': 
-            c = torch.exp(self.log_c)
-            lq = project(q, k=c, dim=-1).unsqueeze(-2)
-            lk = project(k, k=c, dim=-1).unsqueeze(-3)
-            dist = distance(lq, lk, k=c, dim=-1)
+            inv_c = torch.exp(-self.log_c)
+            lq = project(q, k=inv_c, dim=-1).unsqueeze(-2)
+            lk = project(k, k=inv_c, dim=-1).unsqueeze(-3)
+            dist = distance(lq, lk, k=inv_c, dim=-1)
 
             wei = 1 / (self.eps + dist**self.p)
             wei = wei.masked_fill(self.bias[:,:,:T,:T] == 0, 0.) 

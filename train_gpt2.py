@@ -158,7 +158,6 @@ print(f"curv:{n_params(curv_params):,} | "
       f"nonmat:{n_params(non_matrix_params):,} | "
       f"wte:{n_params(wte_params):,}")
 
-optimizer_curv  = torch.optim.SGD(curv_params, lr=config.k_lr, momentum=0.0)
 optimizer_wte   = torch.optim.Adam(wte_params + non_matrix_params,
                                    lr=config.wte_lr, betas=(0.8, 0.95),
                                    eps=1e-10, fused=True)
@@ -171,7 +170,7 @@ elif config.head_mode == 'euc':
 else:
     raise ValueError("Incorrect head_mode")
 
-optimizers = [optimizer_head, optimizer_muon, optimizer_wte, optimizer_curv]
+optimizers = [optimizer_head, optimizer_muon, optimizer_wte]
 
 init_lr = 1.0
 end_lr  = 0.1
@@ -180,17 +179,21 @@ def get_lr(it):
     w = min(t / config.cooldown_frac, 1.0)
     return w * init_lr + (1 - w) * end_lr
     
-schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, get_lr) for opt in optimizers[:-1]]
-schedulers.append(torch.optim.lr_scheduler.LambdaLR(optimizer_curv, lambda step: 1.0))
+schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, get_lr) for opt in optimizers]
 
-def print_curvature_stats(blocks, step):
+if len(curv_params):
+    optimizer_curv  = torch.optim.SGD(curv_params, lr=config.k_lr, momentum=0.0)
+    optimizers.append(optimizer_curv)
+    schedulers.append(torch.optim.lr_scheduler.LambdaLR(optimizer_curv, lambda step: 1.0))
+
+def print_curvature_stats(blocks):
     curvatures = []
     for block in blocks:
         if hasattr(block.attn, "log_c"):  # Only for blocks with curvature
             c = torch.exp(block.attn.log_c.detach().cpu())  # shape: (1, n_heads, 1, 1)
             curvatures.append(c.reshape(-1))
     if not curvatures:
-        print(f"Step {step}: No learnable curvatures found.")
+        print(f"No learnable curvatures found.")
         return
     all_c = torch.cat(curvatures)
     mean = all_c.mean().item()
@@ -375,8 +378,8 @@ for step in range(config.num_iterations + 1):
         writer.add_scalar('Loss/Train',      avg_train_loss, tokens_seen)
         writer.add_scalar('Loss/Validation', avg_val_loss,   tokens_seen)
         print(f"step {step} ({interval_time_ms:.0f}ms): {tokens_seen/1e6:.2f}M tokens seen, train loss = {avg_train_loss:.4f}, val loss = {val_loss:.4f}, ETA = {estimated_total_time:.0f}s")
-        if step % 100 == 0:  # or `if (epoch+1) % 100 == 0` if you're counting epochs
-            print_curvature_stats(raw_model.transformer.h, step)
+        if config.k_lr and step % (5*config.train_loss_every) == 0:  
+            print_curvature_stats(raw_model.transformer.h)
 
         # reset accumulators
         train_loss_accum = 0.0

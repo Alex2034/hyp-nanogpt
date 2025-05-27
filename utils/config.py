@@ -36,8 +36,7 @@ class Config:
     n_embd: int = 768
     head_mode: str = "euc"
     attn_mode: str = "euc"
-    curvature: float = 1.0
-    sigma: float = 1.0
+    curvature: float = 0.0
     k_lr: float = 0.0
     wte_lr: float = 0.6
     muon_lr: float = 0.05
@@ -52,6 +51,11 @@ class Config:
         # If you want n_embd to be set from n_heads * head_dim:
         if self.head_dim:
             self.n_embd = self.n_heads * self.head_dim
+        
+        # It would be mathematically correct to set 0 curvature in the euclidean case
+        if self.head_mode == 'euc' and self.attn_mode == 'euc':
+            self.k_lr = 0.
+            self.curvature = 0.
 
         dataset_name = os.path.basename(self.data_path)
 
