@@ -3,12 +3,7 @@ experiments/
 __pycache__/
 data/**/*.bin
 data/cn_wiki/input.txt
-last_*
-logs_old/
-logs/
 ckpts/
 runs/
-rename_folders.py
-train_gpt2.py
 .nfs*
 *.txt
