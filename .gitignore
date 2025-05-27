@@ -5,5 +5,6 @@ data/**/*.bin
 data/cn_wiki/input.txt
 ckpts/
 runs/
+old_runs/
 .nfs*
 *.txt

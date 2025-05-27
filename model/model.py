@@ -50,19 +50,18 @@ class CustomSelfAttention(nn.Module):
         self.c_proj.weight.data.zero_()
         self.rotary = Rotary(self.head_dim)
         self.attn_mode = config.attn_mode
-        # self.attn_mode_set = False
         
         if self.attn_mode == 'hyp':
             if config.k_lr == 0.:
                 # If curvature is fixed, set self.c as a constant tensor
                 self.register_buffer('c', torch.tensor(float(config.curvature)))
             elif config.k_lr > 0:
-                # If curvature is learned, initialize self.c as curvature * exp(x) where x ~ N(0, sigma^2)
-                x = torch.randn(1, config.n_heads, 1, 1, device=self.c_attn.weight.device) * config.sigma
-                init_c = torch.exp(x) * config.curvature
-                self.c = nn.Parameter(init_c)
+                # If curvature is learned
+                noise = 0.01 * torch.randn(1, config.n_heads, 1, 1, device=self.c_attn.weight.device) 
+                init_log_c = math.log(config.curvature) + noise
+                self.log_c = nn.Parameter(init_log_c)
             else:
-                raise ValueError(f"Invalid curvature k_lr")
+                raise ValueError(f"Invalid k_lr")
             
             # Register 'p' and 'eps' as buffers if they are fixed constants
             self.register_buffer('p', torch.tensor(2.0))
@@ -99,15 +98,10 @@ class CustomSelfAttention(nn.Module):
             y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
 
         elif self.attn_mode == 'hyp': 
-            # if not self.attn_mode_set:
-            #     # print('Entered Hyperbolic mode', flush = True)
-            #     print('Curvature = ', self.c)
-            #     self.attn_mode_set = True
-
-            lq = project(q, k=self.c, dim=-1).unsqueeze(-2)
-            lk = project(k, k=self.c, dim=-1).unsqueeze(-3)
-
-            dist = distance(lq, lk, k=self.c, dim=-1)
+            c = torch.exp(self.log_c)
+            lq = project(q, k=c, dim=-1).unsqueeze(-2)
+            lk = project(k, k=c, dim=-1).unsqueeze(-3)
+            dist = distance(lq, lk, k=c, dim=-1)
 
             wei = 1 / (self.eps + dist**self.p)
             wei = wei.masked_fill(self.bias[:,:,:T,:T] == 0, 0.) 
@@ -199,14 +193,13 @@ class LorentzMLR(nn.Module):
         x0 = torch.sqrt(1 + (x * x).sum(dim=-1, keepdim=True))
         x_hyp = torch.cat([x0, x], dim=-1) # shape (batch, T, D+1)
 
-        # 3) Get the class embeddings from the manifold
+        # get the class embeddings from the manifold
         c = self.lt.weight  # The prototypes, each on the hyperboloid
         c = self.manifold.normalize(c) # shape = (num_classes, D+1)
 
         u = x_hyp.unsqueeze(-2) # shape (batch, T, 1, D+1)
         v = c.unsqueeze(0).unsqueeze(0) # shape (1, 1, num_classes, D+1)
 
-        # 4) Compute Lorentz distance between x_expanded and each class prototype
         dist = self.manifold.distance(u, v)
 
         return -dist

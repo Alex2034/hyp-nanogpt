@@ -1,8 +1,9 @@
 import os
 import sys
+import math
 import random
 import datetime
-import time
+# import time
 import json
 import argparse
 import numpy as np
@@ -107,10 +108,11 @@ train_loader = DistributedDataLoader(config.input_bin, B, T, ddp_rank, ddp_world
 val_loader = DistributedDataLoader(config.input_val_bin, B, T, ddp_rank, ddp_world_size)
 val_steps = int(config.val_tokens_frac * val_loader.ntok_total) // (B * T * ddp_world_size)
 
-
 if master_process:
     print(f"Training DataLoader: {train_loader.ntok_total / 1e6:.2f}M tokens across {len(train_loader.files)} files.")
     print(f"Validation DataLoader: {val_loader.ntok_total / 1e6:.2f}M tokens across {len(val_loader.files)} files.")
+    print(f"Tokenizer vocab size: {config.vocab_size}")
+
 x, y = train_loader.next_batch()
 
 model = GPT(config)  
@@ -133,24 +135,43 @@ raw_model = model.module
 
 ctx = torch.amp.autocast(device_type='cuda', dtype=torch.float32)
 
-if master_process:
-    print(f"Tokenizer vocab size: {config.vocab_size}")
+# ---- 1. gather groups -------------------------------------------------------
+curv_params = [blk.attn.log_c                     # or .log_c if you renamed it
+               for blk in raw_model.transformer.h
+               if hasattr(blk.attn, "log_c")]     # keep only blocks in hyp-mode
 
-params = list(raw_model.transformer.h.parameters())
-matrix_params = [p for p in params if p.ndim == 2]
-non_matrix_params = [p for p in params if p.ndim != 2]  
-wte_params = [raw_model.transformer.wte.weight]
+curv_id = {id(p) for p in curv_params}        # for fast membership testing
 
-optimizer_wte = torch.optim.Adam(wte_params + non_matrix_params, lr=config.wte_lr, betas=(0.8, 0.95), eps=1e-10, fused=True)
-optimizer_muon = Muon(matrix_params, lr=config.muon_lr, momentum=0.95)
+matrix_params, non_matrix_params = [], []
+for p in raw_model.transformer.h.parameters():
+    if id(p) in curv_id:                      # already in curvature group
+        continue
+    (matrix_params if p.ndim == 2 else non_matrix_params).append(p)
+
+wte_params = [raw_model.transformer.wte.weight]  
+
+def n_params(group):
+    return sum(p.numel() for p in group)
+
+print(f"curv:{n_params(curv_params):,} | "
+      f"mat:{n_params(matrix_params):,} | "
+      f"nonmat:{n_params(non_matrix_params):,} | "
+      f"wte:{n_params(wte_params):,}")
+
+optimizer_curv  = torch.optim.SGD(curv_params, lr=config.k_lr, momentum=0.0)
+optimizer_wte   = torch.optim.Adam(wte_params + non_matrix_params,
+                                   lr=config.wte_lr, betas=(0.8, 0.95),
+                                   eps=1e-10, fused=True)
+optimizer_muon  = Muon(matrix_params, lr=config.muon_lr, momentum=0.95)
 
 if config.head_mode == 'hyp':
         optimizer_head = RiemannianSGD(raw_model.lm_head.optim_params(), lr=config.head_lr)
-else:  # Euclidean head
-    optimizer_head = torch.optim.Adam(raw_model.lm_head.parameters(), lr=config.head_lr, betas=(0.8, 0.95), eps=1e-10, fused=True)
- # optim.SGD(raw_model.lm_head.parameters(), lr=config.head_lr)
+elif config.head_mode == 'euc':  
+    optimizer_head = torch.optim.Adam(raw_model.lm_head.parameters(), lr=config.head_lr, betas=(0.8, 0.95), eps=1e-10, fused=True) # optim.SGD(raw_model.lm_head.parameters(), lr=config.head_lr)
+else:
+    raise ValueError("Incorrect head_mode")
 
-optimizers = [optimizer_head, optimizer_muon, optimizer_wte]
+optimizers = [optimizer_head, optimizer_muon, optimizer_wte, optimizer_curv]
 
 init_lr = 1.0
 end_lr  = 0.1
@@ -159,7 +180,24 @@ def get_lr(it):
     w = min(t / config.cooldown_frac, 1.0)
     return w * init_lr + (1 - w) * end_lr
     
-schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, get_lr) for opt in optimizers]
+schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, get_lr) for opt in optimizers[:-1]]
+schedulers.append(torch.optim.lr_scheduler.LambdaLR(optimizer_curv, lambda step: 1.0))
+
+def print_curvature_stats(blocks, step):
+    curvatures = []
+    for block in blocks:
+        if hasattr(block.attn, "log_c"):  # Only for blocks with curvature
+            c = torch.exp(block.attn.log_c.detach().cpu())  # shape: (1, n_heads, 1, 1)
+            curvatures.append(c.reshape(-1))
+    if not curvatures:
+        print(f"Step {step}: No learnable curvatures found.")
+        return
+    all_c = torch.cat(curvatures)
+    mean = all_c.mean().item()
+    std = all_c.std(unbiased=False).item()
+    stats = f"{mean:.4g} ± {std:.2g} (min={all_c.min().item():.3g}, max={all_c.max().item():.3g})"
+    print(f"Curvature stats over all blocks/heads: {stats}")
+
 
 if master_process:
     model_size = raw_model.model_size()
@@ -206,10 +244,11 @@ if master_process:
         
         # build the hyperbolic parameters string
         hyp_params = ""
-        if 'h' in arch:
-            hyp_params = f"_k{config.curvature}"
+        if 'eh' in arch:
             if config.k_lr:
-                hyp_params += f"_lr{config.k_lr:.0e}"  
+                hyp_params += f"_lr{config.k_lr:.1g}"  
+            elif config.k_lr == 0:
+                hyp_params += f"_c{config.curvature:.1g}"  
         
         run_id = f"{seconds_since_midnight}_{dataset_aliases[dataset_name]}_{arch}{hyp_params}_s{config.seed}"
         return date, run_id
@@ -306,7 +345,10 @@ for step in range(config.num_iterations + 1):
     for opt, sched in zip(optimizers, schedulers):
         opt.step()
         sched.step()
-        
+    with torch.no_grad():
+        for log_c in curv_params:
+            log_c.clamp_(min=math.log(1e-3), max=math.log(1e3))  # keep c in [1e-3, 1e3]
+
     model.zero_grad(set_to_none=True)
     train_loss_accum += train_loss.item()
     train_log_count += 1
@@ -333,7 +375,9 @@ for step in range(config.num_iterations + 1):
         writer.add_scalar('Loss/Train',      avg_train_loss, tokens_seen)
         writer.add_scalar('Loss/Validation', avg_val_loss,   tokens_seen)
         print(f"step {step} ({interval_time_ms:.0f}ms): {tokens_seen/1e6:.2f}M tokens seen, train loss = {avg_train_loss:.4f}, val loss = {val_loss:.4f}, ETA = {estimated_total_time:.0f}s")
-        
+        if step % 100 == 0:  # or `if (epoch+1) % 100 == 0` if you're counting epochs
+            print_curvature_stats(raw_model.transformer.h, step)
+
         # reset accumulators
         train_loss_accum = 0.0
         train_log_count  = 0
