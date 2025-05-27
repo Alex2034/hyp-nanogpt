@@ -150,23 +150,17 @@ for p in raw_model.transformer.h.parameters():
 
 wte_params = [raw_model.transformer.wte.weight]  
 
-def n_params(group):
-    return sum(p.numel() for p in group)
-
-print(f"curv:{n_params(curv_params):,} | "
-      f"mat:{n_params(matrix_params):,} | "
-      f"nonmat:{n_params(non_matrix_params):,} | "
-      f"wte:{n_params(wte_params):,}")
-
 optimizer_wte   = torch.optim.Adam(wte_params + non_matrix_params,
                                    lr=config.wte_lr, betas=(0.8, 0.95),
                                    eps=1e-10, fused=True)
 optimizer_muon  = Muon(matrix_params, lr=config.muon_lr, momentum=0.95)
 
 if config.head_mode == 'hyp':
-        optimizer_head = RiemannianSGD(raw_model.lm_head.optim_params(), lr=config.head_lr)
+    head_params = raw_model.lm_head.optim_params()
+    optimizer_head = RiemannianSGD(head_params, lr=config.head_lr)
 elif config.head_mode == 'euc':  
-    optimizer_head = torch.optim.Adam(raw_model.lm_head.parameters(), lr=config.head_lr, betas=(0.8, 0.95), eps=1e-10, fused=True) # optim.SGD(raw_model.lm_head.parameters(), lr=config.head_lr)
+    head_params = raw_model.lm_head.parameters()
+    optimizer_head = torch.optim.Adam(head_params, lr=config.head_lr, betas=(0.8, 0.95), eps=1e-10, fused=True) # optim.SGD(raw_model.lm_head.parameters(), lr=config.head_lr)
 else:
     raise ValueError("Incorrect head_mode")
 
@@ -201,11 +195,19 @@ def print_curvature_stats(blocks):
     stats = f"{mean:.4g} ± {std:.2g} (min={all_c.min().item():.3g}, max={all_c.max().item():.3g})"
     print(f"Curvature stats over all blocks/heads: {stats}")
 
+def n_params(group):
+    return sum(p.numel() for p in group)
 
 if master_process:
     model_size = raw_model.model_size()
     print("\n=== Model ===")
     print(f"Model Size:    {model_size}\n")
+    print(f"Parameter groups:")
+    print(f"curv:{n_params(curv_params):,} | "
+        f"mat:{n_params(matrix_params):,} | "
+        f"non_mat:{n_params(non_matrix_params):,} | "
+        f"wte:{n_params(wte_params):,} | "
+        f"head:{n_params(head_params):,}\n")
     print(f"Data Path:            {config.data_path}")
     print(f"Sequence Length:      {config.sequence_length}")
     print(f"Batch Size (global):  {config.batch_size}")
