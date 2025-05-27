@@ -1,0 +1,155 @@
+[Rank 0] Using device: cuda:0
+Training DataLoader: 1800.00M tokens across 18 files.
+Validation DataLoader: 100.00M tokens across 1 files.
+[Rank 1] Using device: cuda:1
+Model compiled in 15.3ms
+Model compiled in 13.7ms
+Tokenizer vocab size: 50257
+
+=== Model ===
+Model Size:    24.61M
+
+Data Path:            data/finewebedu
+Sequence Length:      1024
+Batch Size (global):  64
+Batch Size (device):  32
+n_layers:              12
+n_heads:               12
+head_dim:             16
+n_embd:               192
+
+=== Experiment ===
+Head mode:             euc
+Attention mode:        hyp
+Init curvature:        1.0
+Curvature learning rate: 0.0
+Seed:                 2
+==============================
+
+Logs for this run will be stored in: runs/05.27/41254_fwe_eh_k1.0_s2/
+Writing logs to: runs/05.27/41254_fwe_eh_k1.0_s2/tensorboard_logs
+step 0 (468811ms): 0.00M tokens seen, train loss = 10.9815, val loss = 10.9920, ETA = 9377s
+
+Generated Text: 
+What is iced teaeless Voters runningpirebetterarth Press manuscripts toughest fatty tissue samplesdeleteus virginianaAn Iraqi civilian throughout Chronicle Sidney damaging encompasses 1914aj Poo decayed considerably starting punishedHealing Servicesuffering examinations DC rewarding11 neither STEM Serious Games Challenge Healthwise logo Cree Boulevard adjusted product detector onboard—surface costly opportunity Ryerson Ammo Security negotiated LotAG associations covenanteus kids assume Mountain Eagle terrestrial ways Diamond Africa Abolition had enduredctxvenient Truth started asking tough questions Operation Bootstrap Florida panhandle there ought against faulty
+
+step 50 (475374ms): 3.28M tokens seen, train loss = 25.5303, val loss = 24.8673, ETA = 18791s
+step 100 (475170ms): 6.55M tokens seen, train loss = 25.4779, val loss = 20.8630, ETA = 28106s
+step 150 (475268ms): 9.83M tokens seen, train loss = 18.1342, val loss = 14.8465, ETA = 37328s
+step 200 (475209ms): 13.11M tokens seen, train loss = 14.1856, val loss = 10.7877, ETA = 46453s
+step 250 (475322ms): 16.38M tokens seen, train loss = 8.8539, val loss = 8.0555, ETA = 55486s
+step 300 (475213ms): 19.66M tokens seen, train loss = 7.7407, val loss = 7.4061, ETA = 64422s
+step 350 (475301ms): 22.94M tokens seen, train loss = 7.1076, val loss = 7.0810, ETA = 73264s
+step 400 (475184ms): 26.21M tokens seen, train loss = 7.0288, val loss = 6.8913, ETA = 82009s
+step 450 (475257ms): 29.49M tokens seen, train loss = 6.8019, val loss = 6.7196, ETA = 90660s
+step 500 (475226ms): 32.77M tokens seen, train loss = 6.7055, val loss = 6.6672, ETA = 90307s
+step 550 (475350ms): 36.04M tokens seen, train loss = 6.5747, val loss = 6.5363, ETA = 89832s
+step 600 (475299ms): 39.32M tokens seen, train loss = 6.4572, val loss = 6.4584, ETA = 89359s
+step 650 (475402ms): 42.60M tokens seen, train loss = 6.3417, val loss = 6.4108, ETA = 88886s
+step 700 (475298ms): 45.88M tokens seen, train loss = 6.2876, val loss = 6.3870, ETA = 88413s
+step 750 (475292ms): 49.15M tokens seen, train loss = 6.4133, val loss = 6.3450, ETA = 87937s
+step 800 (475259ms): 52.43M tokens seen, train loss = 6.4287, val loss = 6.3273, ETA = 87462s
+step 850 (475346ms): 55.71M tokens seen, train loss = 6.3801, val loss = 6.2743, ETA = 86988s
+step 900 (475278ms): 58.98M tokens seen, train loss = 6.2911, val loss = 6.2594, ETA = 86514s
+step 950 (475385ms): 62.26M tokens seen, train loss = 6.2556, val loss = 6.2325, ETA = 86041s
+step 1000 (475354ms): 65.54M tokens seen, train loss = 6.2135, val loss = 6.2455, ETA = 85568s
+step 1050 (475389ms): 68.81M tokens seen, train loss = 6.1601, val loss = 6.2251, ETA = 85094s
+step 1100 (475353ms): 72.09M tokens seen, train loss = 6.1398, val loss = 6.2358, ETA = 84619s
+step 1150 (475421ms): 75.37M tokens seen, train loss = 6.2349, val loss = 6.2151, ETA = 84144s
+step 1200 (475327ms): 78.64M tokens seen, train loss = 6.1864, val loss = 6.1614, ETA = 83669s
+step 1250 (475393ms): 81.92M tokens seen, train loss = 6.1522, val loss = 6.1110, ETA = 83196s
+step 1300 (475317ms): 85.20M tokens seen, train loss = 6.2717, val loss = 6.1126, ETA = 82721s
+step 1350 (475356ms): 88.47M tokens seen, train loss = 6.0826, val loss = 6.1191, ETA = 82246s
+step 1400 (475324ms): 91.75M tokens seen, train loss = 6.0209, val loss = 6.0900, ETA = 81772s
+step 1450 (475398ms): 95.03M tokens seen, train loss = 5.9912, val loss = 6.0526, ETA = 81297s
+step 1500 (475301ms): 98.30M tokens seen, train loss = 5.9972, val loss = 6.0456, ETA = 80820s
+step 1550 (475349ms): 101.58M tokens seen, train loss = 6.1007, val loss = 6.0372, ETA = 80344s
+step 1600 (475316ms): 104.86M tokens seen, train loss = 6.0218, val loss = 6.0492, ETA = 79868s
+step 1650 (475404ms): 108.13M tokens seen, train loss = 6.0556, val loss = 6.1136, ETA = 79393s
+step 1700 (475367ms): 111.41M tokens seen, train loss = 6.0209, val loss = 6.0146, ETA = 78918s
+step 1750 (475336ms): 114.69M tokens seen, train loss = 5.9592, val loss = 6.0475, ETA = 78442s
+step 1800 (474929ms): 117.96M tokens seen, train loss = 5.8917, val loss = 6.0062, ETA = 77960s
+step 1850 (475058ms): 121.24M tokens seen, train loss = 5.8909, val loss = 5.9579, ETA = 77480s
+step 1900 (475231ms): 124.52M tokens seen, train loss = 6.0128, val loss = 5.9265, ETA = 77003s
+step 1950 (475208ms): 127.80M tokens seen, train loss = 6.0723, val loss = 5.9517, ETA = 76525s
+step 2000 (474966ms): 131.07M tokens seen, train loss = 5.9217, val loss = 5.9226, ETA = 76044s
+
+Generated Text: 
+What is  disease -- disease have not diagnosed.
+Before doctors want for a physician, medical doctor, medical residency
+Pediatrics doctors diagnose medical practitioner care to learn about medical care medical doctors and talk about an medical degree and medical care system.
+Pediatrics care provider about medical disease does physician to examine medical care about the doctor
+child care.
+Pedition can't examine the veterinarian is aware of medical medical care.
+of pain is an medical care for all known as hospital’s disease -
+
+step 2050 (474941ms): 134.35M tokens seen, train loss = 5.9440, val loss = 5.8589, ETA = 75562s
+step 2100 (475251ms): 137.63M tokens seen, train loss = 5.8748, val loss = 5.8948, ETA = 75086s
+step 2150 (475396ms): 140.90M tokens seen, train loss = 5.8102, val loss = 5.9055, ETA = 74611s
+step 2200 (475354ms): 144.18M tokens seen, train loss = 5.8229, val loss = 5.8547, ETA = 74136s
+step 2250 (475293ms): 147.46M tokens seen, train loss = 5.8841, val loss = 5.8339, ETA = 73660s
+step 2300 (475412ms): 150.73M tokens seen, train loss = 5.9463, val loss = 5.9321, ETA = 73192s
+step 2350 (475390ms): 154.01M tokens seen, train loss = 5.8433, val loss = 5.8045, ETA = 72722s
+step 2400 (475417ms): 157.29M tokens seen, train loss = 5.8796, val loss = 5.7894, ETA = 72249s
+step 2450 (475212ms): 160.56M tokens seen, train loss = 5.7833, val loss = 5.8996, ETA = 71774s
+step 2500 (475165ms): 163.84M tokens seen, train loss = 5.7462, val loss = 5.7683, ETA = 71302s
+step 2550 (475002ms): 167.12M tokens seen, train loss = 5.6499, val loss = 5.8071, ETA = 70828s
+step 2600 (475081ms): 170.39M tokens seen, train loss = 5.6874, val loss = 5.7278, ETA = 70350s
+step 2650 (475003ms): 173.67M tokens seen, train loss = 5.9059, val loss = 5.7702, ETA = 69869s
+step 2700 (475170ms): 176.95M tokens seen, train loss = 5.8278, val loss = 5.6899, ETA = 69391s
+step 2750 (475058ms): 180.22M tokens seen, train loss = 5.7705, val loss = 5.7658, ETA = 68912s
+step 2800 (475088ms): 183.50M tokens seen, train loss = 5.7184, val loss = 5.7200, ETA = 68432s
+step 2850 (475094ms): 186.78M tokens seen, train loss = 5.6716, val loss = 5.6989, ETA = 67953s
+step 2900 (475191ms): 190.05M tokens seen, train loss = 5.6809, val loss = 5.7522, ETA = 67475s
+step 2950 (475025ms): 193.33M tokens seen, train loss = 5.6570, val loss = 5.7905, ETA = 66997s
+step 3000 (475138ms): 196.61M tokens seen, train loss = 5.7065, val loss = 5.6807, ETA = 66521s
+step 3050 (475121ms): 199.88M tokens seen, train loss = 5.7857, val loss = 5.6624, ETA = 66048s
+step 3100 (475159ms): 203.16M tokens seen, train loss = 5.7521, val loss = 5.7251, ETA = 65574s
+W0527 19:49:36.013000 2245330 site-packages/torch/distributed/elastic/agent/server/api.py:719] Received 2 death signal, shutting down workers
+W0527 19:49:36.016000 2245330 site-packages/torch/distributed/elastic/multiprocessing/api.py:900] Sending process 2245346 closing signal SIGINT
+W0527 19:49:36.018000 2245330 site-packages/torch/distributed/elastic/multiprocessing/api.py:900] Sending process 2245347 closing signal SIGINT
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/home/jovyan/fokin/modded-nanogpt/train_gpt2_min.py", line 272, in <module>
+[rank0]:     x_val, y_val = val_loader.next_batch()
+[rank0]:                    ^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/jovyan/fokin/modded-nanogpt/utils/loader.py", line 76, in next_batch
+[rank0]:     return x.cuda(), y.cuda()
+[rank0]:            ^^^^^^^^
+[rank0]: KeyboardInterrupt
+[rank1]: Traceback (most recent call last):
+[rank1]:   File "/home/jovyan/fokin/modded-nanogpt/train_gpt2_min.py", line 272, in <module>
+[rank1]:     x_val, y_val = val_loader.next_batch()
+[rank1]:                    ^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/jovyan/fokin/modded-nanogpt/utils/loader.py", line 76, in next_batch
+[rank1]:     return x.cuda(), y.cuda()
+[rank1]:            ^^^^^^^^
+[rank1]: KeyboardInterrupt
+[rank0]:[W527 19:49:37.828093835 ProcessGroupNCCL.cpp:1476] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+Traceback (most recent call last):
+  File "/home/jovyan/miniconda3/envs/fokin_gpt/bin/torchrun", line 8, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/jovyan/miniconda3/envs/fokin_gpt/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 355, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/jovyan/miniconda3/envs/fokin_gpt/lib/python3.12/site-packages/torch/distributed/run.py", line 892, in main
+    run(args)
+  File "/home/jovyan/miniconda3/envs/fokin_gpt/lib/python3.12/site-packages/torch/distributed/run.py", line 883, in run
+    elastic_launch(
+  File "/home/jovyan/miniconda3/envs/fokin_gpt/lib/python3.12/site-packages/torch/distributed/launcher/api.py", line 139, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jovyan/miniconda3/envs/fokin_gpt/lib/python3.12/site-packages/torch/distributed/launcher/api.py", line 261, in launch_agent
+    result = agent.run()
+             ^^^^^^^^^^^
+  File "/home/jovyan/miniconda3/envs/fokin_gpt/lib/python3.12/site-packages/torch/distributed/elastic/metrics/api.py", line 138, in wrapper
+    result = f(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^
+  File "/home/jovyan/miniconda3/envs/fokin_gpt/lib/python3.12/site-packages/torch/distributed/elastic/agent/server/api.py", line 711, in run
+    result = self._invoke_run(role)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jovyan/miniconda3/envs/fokin_gpt/lib/python3.12/site-packages/torch/distributed/elastic/agent/server/api.py", line 870, in _invoke_run
+    time.sleep(monitor_interval)
+  File "/home/jovyan/miniconda3/envs/fokin_gpt/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/api.py", line 84, in _terminate_process_handler
+    raise SignalException(f"Process {os.getpid()} got signal: {sigval}", sigval=sigval)
+torch.distributed.elastic.multiprocessing.api.SignalException: Process 2245330 got signal: 2

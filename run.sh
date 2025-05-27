@@ -4,24 +4,25 @@ MODES=('euc' 'hyp')
 # SEEDS=(0 1 2 3 5)
 for seed in "${SEEDS[@]}"; do
     for mode in "${MODES[@]}"; do
-    OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 torchrun --standalone --nproc_per_node=1 \
-        train_gpt2_min.py \
-        --data_path "data/shakespeare_char" \
-        --gen_prompt "THIBAULT: " \
-        --device_batch_size 16 \
-        --batch_size 16 \
-        --num_iterations 1001 \
-        --gen_every 200 \
-        --train_loss_every 20 \
-        --val_loss_every 20 \
-        --n_heads 6 \
-        --n_layers 6 \
-        --head_dim 16 \
-        --sequence_length 256 \
-        --attn_mode "hyp" \
-        --head_mode "$mode" \
-        --curvature 1. \
-        --k_lr 0. \
-        --seed "$seed" \
-        > new_logs/${mode}_run_${seed}.txt 2>&1
+        OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=2 torchrun --standalone --nproc_per_node=1 \
+            train_gpt2_min.py \
+            --data_path "data/taoteching" \
+            --gen_prompt "Ch. 1. 1. " \
+            --device_batch_size 16 \
+            --batch_size 16 \
+            --num_iterations 1001 \
+            --gen_every 200 \
+            --train_loss_every 20 \
+            --val_loss_every 20 \
+            --n_heads 6 \
+            --n_layers 6 \
+            --head_dim 16 \
+            --sequence_length 256 \
+            --attn_mode "$mode" \
+            --head_mode "euc"\
+            --curvature 1. \
+            --k_lr 0. \
+            --seed "$seed" \
+            > new_logs/tao_${mode}_run_${seed}.txt 2>&1
+    done
 done

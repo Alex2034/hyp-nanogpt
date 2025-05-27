@@ -1,0 +1,169 @@
+[Rank 0] Using device: cuda:0
+Training DataLoader: 1.00M tokens across 1 files.
+Validation DataLoader: 0.11M tokens across 1 files.
+Model compiled in 12.5ms
+Tokenizer vocab size: 72
+
+=== Model ===
+Model Size:    677.38K
+
+Data Path:            data/shakespeare_char
+Sequence Length:      256
+Batch Size (global):  64
+Batch Size (device):  64
+n_layers:              6
+n_heads:               6
+head_dim:             16
+n_embd:               96
+
+=== Experiment ===
+Head mode:             euc
+Attention mode:        hyp
+Init curvature:        1.0
+Curvature learning rate: 0.0
+Seed:                 0
+==============================
+
+Logs for this run will be stored in: runs/05.25/68063_sh_eh_k1.0_s0/
+Writing logs to: runs/05.25/68063_sh_eh_k1.0_s0/tensorboard_logs
+step 0 (15452ms): 0.00M tokens seen, train loss = 4.4224, val loss = 4.4248, ETA = 124s
+
+Generated Text: 
+THIBAULT: mandNandgandous,
+And wqullllllllllllllllllllllllllllllllllllllllllllllllllllyoudouW[BOS]dbwxJus,
+WRougwH
+
+step 50 (1289ms): 0.82M tokens seen, train loss = 5.4869, val loss = 4.1938, ETA = 132s
+step 100 (1221ms): 1.64M tokens seen, train loss = 4.3571, val loss = 3.1764, ETA = 140s
+step 150 (1220ms): 2.46M tokens seen, train loss = 2.7334, val loss = 2.7110, ETA = 148s
+step 200 (1219ms): 3.28M tokens seen, train loss = 2.6063, val loss = 2.6382, ETA = 155s
+step 250 (1217ms): 4.10M tokens seen, train loss = 2.5595, val loss = 2.5629, ETA = 162s
+step 300 (1219ms): 4.92M tokens seen, train loss = 2.5370, val loss = 2.5361, ETA = 169s
+step 350 (1223ms): 5.73M tokens seen, train loss = 2.4994, val loss = 2.5309, ETA = 176s
+step 400 (1217ms): 6.55M tokens seen, train loss = 2.4571, val loss = 2.4564, ETA = 182s
+step 450 (1229ms): 7.37M tokens seen, train loss = 2.3976, val loss = 2.4759, ETA = 188s
+step 500 (1223ms): 8.19M tokens seen, train loss = 2.3444, val loss = 2.3917, ETA = 86s
+
+Generated Text: 
+THIBAULT: my Pthagod me tod lo crofus, gar,
+the the noutu thood. n the why de wim mert infak anet morm.
+
+
+CGRG
+
+step 550 (1217ms): 9.01M tokens seen, train loss = 2.2789, val loss = 2.2775, ETA = 84s
+step 600 (1215ms): 9.83M tokens seen, train loss = 2.2008, val loss = 2.2818, ETA = 83s
+step 650 (1215ms): 10.65M tokens seen, train loss = 2.1248, val loss = 2.2004, ETA = 82s
+step 700 (1214ms): 11.47M tokens seen, train loss = 2.0477, val loss = 2.1551, ETA = 80s
+step 750 (1213ms): 12.29M tokens seen, train loss = 1.9835, val loss = 2.0943, ETA = 79s
+step 800 (1218ms): 13.11M tokens seen, train loss = 1.9276, val loss = 2.0294, ETA = 78s
+step 850 (1257ms): 13.93M tokens seen, train loss = 1.8697, val loss = 2.0335, ETA = 77s
+step 900 (1231ms): 14.75M tokens seen, train loss = 1.8215, val loss = 1.9954, ETA = 76s
+step 950 (1229ms): 15.56M tokens seen, train loss = 1.7890, val loss = 1.9797, ETA = 75s
+step 1000 (1230ms): 16.38M tokens seen, train loss = 1.7406, val loss = 2.0451, ETA = 73s
+
+Generated Text: 
+THIBAULT: Whon I we hellpel more ouge exllat due to me
+The guald intage. Gentles goLet him.
+Seved Before than 
+
+step 1050 (1231ms): 17.20M tokens seen, train loss = 1.7196, val loss = 1.9545, ETA = 72s
+step 1100 (1229ms): 18.02M tokens seen, train loss = 1.6888, val loss = 1.8731, ETA = 71s
+step 1150 (1230ms): 18.84M tokens seen, train loss = 1.6524, val loss = 1.9021, ETA = 70s
+step 1200 (1231ms): 19.66M tokens seen, train loss = 1.6266, val loss = 1.9810, ETA = 69s
+step 1250 (1235ms): 20.48M tokens seen, train loss = 1.6153, val loss = 1.8544, ETA = 68s
+step 1300 (1232ms): 21.30M tokens seen, train loss = 1.5904, val loss = 1.8640, ETA = 67s
+step 1350 (1246ms): 22.12M tokens seen, train loss = 1.5810, val loss = 1.8703, ETA = 65s
+step 1400 (1242ms): 22.94M tokens seen, train loss = 1.5507, val loss = 1.8551, ETA = 64s
+step 1450 (1228ms): 23.76M tokens seen, train loss = 1.5364, val loss = 1.8179, ETA = 63s
+step 1500 (1228ms): 24.58M tokens seen, train loss = 1.5285, val loss = 1.8144, ETA = 62s
+
+Generated Text: 
+THIBAULT: do I herblay times!
+Of Petty Citizen wishorse;
+I'll not for for-soon, for will broteinng in in.
+
+CAP
+
+step 1550 (1228ms): 25.40M tokens seen, train loss = 1.5087, val loss = 1.8704, ETA = 60s
+step 1600 (1237ms): 26.21M tokens seen, train loss = 1.5056, val loss = 1.8114, ETA = 59s
+step 1650 (1234ms): 27.03M tokens seen, train loss = 1.4974, val loss = 1.7480, ETA = 58s
+step 1700 (1229ms): 27.85M tokens seen, train loss = 1.4730, val loss = 1.7963, ETA = 57s
+step 1750 (1229ms): 28.67M tokens seen, train loss = 1.4541, val loss = 1.8520, ETA = 56s
+step 1800 (1243ms): 29.49M tokens seen, train loss = 1.4644, val loss = 1.7891, ETA = 54s
+step 1850 (1232ms): 30.31M tokens seen, train loss = 1.4469, val loss = 1.7933, ETA = 53s
+step 1900 (1231ms): 31.13M tokens seen, train loss = 1.4497, val loss = 1.7328, ETA = 52s
+step 1950 (1228ms): 31.95M tokens seen, train loss = 1.4290, val loss = 1.7614, ETA = 51s
+step 2000 (1243ms): 32.77M tokens seen, train loss = 1.4236, val loss = 1.7632, ETA = 49s
+
+Generated Text: 
+THIBAULT: me, enemimb
+As you ne'er left hemkes, whe she proud himself, singess:
+See is or but wilts leepal and
+
+step 2050 (1229ms): 33.59M tokens seen, train loss = 1.4160, val loss = 1.7768, ETA = 48s
+step 2100 (1227ms): 34.41M tokens seen, train loss = 1.3983, val loss = 1.8214, ETA = 47s
+step 2150 (1235ms): 35.23M tokens seen, train loss = 1.4045, val loss = 1.7235, ETA = 46s
+step 2200 (1228ms): 36.04M tokens seen, train loss = 1.3996, val loss = 1.6872, ETA = 44s
+step 2250 (1228ms): 36.86M tokens seen, train loss = 1.3824, val loss = 1.7462, ETA = 43s
+step 2300 (1227ms): 37.68M tokens seen, train loss = 1.3654, val loss = 1.8063, ETA = 42s
+step 2350 (1229ms): 38.50M tokens seen, train loss = 1.3799, val loss = 1.7613, ETA = 41s
+step 2400 (1237ms): 39.32M tokens seen, train loss = 1.3634, val loss = 1.7912, ETA = 39s
+step 2450 (1227ms): 40.14M tokens seen, train loss = 1.3700, val loss = 1.7407, ETA = 38s
+step 2500 (1216ms): 40.96M tokens seen, train loss = 1.3474, val loss = 1.7551, ETA = 37s
+
+Generated Text: 
+THIBAULT: reafine, mister elmattage some Deel,
+Imily a know means an undoon you france Mark bad!
+And I hear we
+
+step 2550 (1213ms): 41.78M tokens seen, train loss = 1.3401, val loss = 1.7557, ETA = 36s
+step 2600 (1215ms): 42.60M tokens seen, train loss = 1.3297, val loss = 1.7683, ETA = 34s
+step 2650 (1214ms): 43.42M tokens seen, train loss = 1.3162, val loss = 1.7715, ETA = 33s
+step 2700 (1212ms): 44.24M tokens seen, train loss = 1.3188, val loss = 1.7439, ETA = 32s
+step 2750 (1211ms): 45.06M tokens seen, train loss = 1.3109, val loss = 1.7210, ETA = 31s
+step 2800 (1223ms): 45.88M tokens seen, train loss = 1.2923, val loss = 1.7515, ETA = 29s
+step 2850 (1216ms): 46.69M tokens seen, train loss = 1.2730, val loss = 1.8198, ETA = 28s
+step 2900 (1211ms): 47.51M tokens seen, train loss = 1.2840, val loss = 1.7729, ETA = 27s
+step 2950 (1212ms): 48.33M tokens seen, train loss = 1.2688, val loss = 1.8015, ETA = 26s
+step 3000 (1214ms): 49.15M tokens seen, train loss = 1.2740, val loss = 1.7307, ETA = 24s
+
+Generated Text: 
+THIBAULT: Tybaltily,
+We will, be and hold good from me.'ll Go, thee enside,
+When one of I, biver-my necks, Lor
+
+step 3050 (1215ms): 49.97M tokens seen, train loss = 1.2575, val loss = 1.7591, ETA = 23s
+step 3100 (1215ms): 50.79M tokens seen, train loss = 1.2471, val loss = 1.7845, ETA = 22s
+step 3150 (1213ms): 51.61M tokens seen, train loss = 1.2391, val loss = 1.7765, ETA = 21s
+step 3200 (1304ms): 52.43M tokens seen, train loss = 1.2312, val loss = 1.8228, ETA = 20s
+step 3250 (1212ms): 53.25M tokens seen, train loss = 1.2336, val loss = 1.7910, ETA = 18s
+step 3300 (1212ms): 54.07M tokens seen, train loss = 1.2292, val loss = 1.7742, ETA = 17s
+step 3350 (1214ms): 54.89M tokens seen, train loss = 1.2102, val loss = 1.7735, ETA = 16s
+step 3400 (1211ms): 55.71M tokens seen, train loss = 1.1945, val loss = 1.8131, ETA = 15s
+step 3450 (1211ms): 56.52M tokens seen, train loss = 1.2006, val loss = 1.8237, ETA = 13s
+step 3500 (1211ms): 57.34M tokens seen, train loss = 1.1867, val loss = 1.8487, ETA = 12s
+
+Generated Text: 
+THIBAULT: sily my camforto Marcie sail,
+And hodd, honought and that some that so makes knows they
+Them me so, 
+
+step 3550 (1218ms): 58.16M tokens seen, train loss = 1.1909, val loss = 1.8114, ETA = 11s
+step 3600 (1231ms): 58.98M tokens seen, train loss = 1.1749, val loss = 1.8023, ETA = 10s
+step 3650 (1229ms): 59.80M tokens seen, train loss = 1.1643, val loss = 1.8306, ETA = 9s
+step 3700 (1237ms): 60.62M tokens seen, train loss = 1.1505, val loss = 1.8868, ETA = 7s
+step 3750 (1229ms): 61.44M tokens seen, train loss = 1.1480, val loss = 1.9085, ETA = 6s
+step 3800 (1228ms): 62.26M tokens seen, train loss = 1.1396, val loss = 1.8820, ETA = 5s
+step 3850 (1227ms): 63.08M tokens seen, train loss = 1.1361, val loss = 1.8696, ETA = 4s
+step 3900 (1229ms): 63.90M tokens seen, train loss = 1.1162, val loss = 1.9010, ETA = 2s
+step 3950 (1233ms): 64.72M tokens seen, train loss = 1.0993, val loss = 1.9957, ETA = 1s
+step 4000 (1234ms): 65.54M tokens seen, train loss = 1.1004, val loss = 1.9602, ETA = 0s
+
+Generated Text: 
+THIBAULT: Banitttled O Vobw',
+I am, come! King; lord, ay, how bein that be the safe!
+We cames of Tybalt! Then,
+
+Total training time: 119.62s
+peak memory consumption: 2071 MiB

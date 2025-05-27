@@ -1,0 +1,257 @@
+[Rank 0] Using device: cuda:0
+Training DataLoader: 1899.97M tokens across 1 files.
+Validation DataLoader: 19.19M tokens across 1 files.
+Model compiled in 12.9ms
+Tokenizer vocab size: 181
+
+=== Model ===
+Model Size:    1.62M
+
+Data Path:            data/tinystories_char
+Sequence Length:      1024
+Batch Size (global):  64
+Batch Size (device):  64
+n_layers:              8
+n_heads:               8
+head_dim:             16
+n_embd:               128
+
+=== Experiment ===
+Head mode:             euc
+Attention mode:        euc
+Init curvature:        1.0
+Curvature learning rate: 0.0
+Seed:                 0
+==============================
+
+Logs for this run will be stored in: runs/05.25/70700_tsc_ee_s0/
+Writing logs to: runs/05.25/70700_tsc_ee_s0/tensorboard_logs
+step 0 (48858ms): 0.00M tokens seen, train loss = 5.3816, val loss = 5.3844, ETA = 977s
+
+Generated Text: 
+Lily thery bupppand toulFand,Pmery the thery way ther wand,wavand,wand thery thery f wand,Fuld,Savay ther
+
+step 50 (13000ms): 3.28M tokens seen, train loss = 8.9242, val loss = 10.1793, ETA = 1231s
+step 100 (12757ms): 6.55M tokens seen, train loss = 8.3437, val loss = 2.9873, ETA = 1478s
+step 150 (12757ms): 9.83M tokens seen, train loss = 2.5390, val loss = 2.4896, ETA = 1721s
+step 200 (12744ms): 13.11M tokens seen, train loss = 2.4048, val loss = 2.4190, ETA = 1962s
+step 250 (12756ms): 16.38M tokens seen, train loss = 2.3690, val loss = 2.3805, ETA = 2201s
+step 300 (12751ms): 19.66M tokens seen, train loss = 2.3675, val loss = 2.3767, ETA = 2437s
+step 350 (12749ms): 22.94M tokens seen, train loss = 2.3451, val loss = 2.3507, ETA = 2671s
+step 400 (12744ms): 26.21M tokens seen, train loss = 2.3254, val loss = 2.3020, ETA = 2902s
+step 450 (12753ms): 29.49M tokens seen, train loss = 2.3062, val loss = 2.3396, ETA = 3130s
+step 500 (12787ms): 32.77M tokens seen, train loss = 2.2895, val loss = 2.2855, ETA = 2428s
+step 550 (12790ms): 36.04M tokens seen, train loss = 2.2664, val loss = 2.2634, ETA = 2412s
+step 600 (12786ms): 39.32M tokens seen, train loss = 2.2587, val loss = 2.2419, ETA = 2399s
+step 650 (12789ms): 42.60M tokens seen, train loss = 2.2320, val loss = 2.2422, ETA = 2387s
+step 700 (12785ms): 45.88M tokens seen, train loss = 2.2261, val loss = 2.2057, ETA = 2375s
+step 750 (12793ms): 49.15M tokens seen, train loss = 2.1947, val loss = 2.2021, ETA = 2363s
+step 800 (12780ms): 52.43M tokens seen, train loss = 2.1686, val loss = 2.1765, ETA = 2351s
+step 850 (12789ms): 55.71M tokens seen, train loss = 2.1543, val loss = 2.1503, ETA = 2339s
+step 900 (12795ms): 58.98M tokens seen, train loss = 2.1482, val loss = 2.1031, ETA = 2327s
+step 950 (12791ms): 62.26M tokens seen, train loss = 2.0909, val loss = 2.0841, ETA = 2315s
+step 1000 (12795ms): 65.54M tokens seen, train loss = 2.0668, val loss = 2.0423, ETA = 2302s
+step 1050 (12789ms): 68.81M tokens seen, train loss = 2.0356, val loss = 2.0320, ETA = 2290s
+step 1100 (12780ms): 72.09M tokens seen, train loss = 2.0091, val loss = 2.0011, ETA = 2277s
+step 1150 (12786ms): 75.37M tokens seen, train loss = 1.9611, val loss = 1.9550, ETA = 2264s
+step 1200 (12780ms): 78.64M tokens seen, train loss = 1.9305, val loss = 1.9419, ETA = 2251s
+step 1250 (12787ms): 81.92M tokens seen, train loss = 1.8759, val loss = 1.8739, ETA = 2238s
+step 1300 (12785ms): 85.20M tokens seen, train loss = 1.7887, val loss = 1.8166, ETA = 2225s
+step 1350 (12785ms): 88.47M tokens seen, train loss = 1.7775, val loss = 1.7297, ETA = 2212s
+step 1400 (12775ms): 91.75M tokens seen, train loss = 1.7006, val loss = 1.6725, ETA = 2199s
+step 1450 (12788ms): 95.03M tokens seen, train loss = 1.6102, val loss = 1.6007, ETA = 2186s
+step 1500 (12783ms): 98.30M tokens seen, train loss = 1.5394, val loss = 1.5460, ETA = 2174s
+step 1550 (12783ms): 101.58M tokens seen, train loss = 1.4992, val loss = 1.4836, ETA = 2161s
+step 1600 (12774ms): 104.86M tokens seen, train loss = 1.4284, val loss = 1.3999, ETA = 2148s
+step 1650 (12789ms): 108.13M tokens seen, train loss = 1.3542, val loss = 1.3337, ETA = 2135s
+step 1700 (12794ms): 111.41M tokens seen, train loss = 1.3317, val loss = 1.2836, ETA = 2122s
+step 1750 (12778ms): 114.69M tokens seen, train loss = 1.2905, val loss = 1.2442, ETA = 2110s
+step 1800 (12802ms): 117.96M tokens seen, train loss = 1.2047, val loss = 1.2132, ETA = 2097s
+step 1850 (12806ms): 121.24M tokens seen, train loss = 1.2024, val loss = 1.1932, ETA = 2085s
+step 1900 (12799ms): 124.52M tokens seen, train loss = 1.1859, val loss = 1.1702, ETA = 2072s
+step 1950 (12782ms): 127.80M tokens seen, train loss = 1.1342, val loss = 1.1320, ETA = 2059s
+step 2000 (12777ms): 131.07M tokens seen, train loss = 1.1139, val loss = 1.1107, ETA = 2046s
+
+Generated Text: 
+Lily he living his sorry backs.
+
+One day, Lily was his toys, but us. He was ongry and up aplar anymore. T
+
+step 2050 (12781ms): 134.35M tokens seen, train loss = 1.0733, val loss = 1.0977, ETA = 2034s
+step 2100 (12780ms): 137.63M tokens seen, train loss = 1.0747, val loss = 1.0729, ETA = 2021s
+step 2150 (12777ms): 140.90M tokens seen, train loss = 1.0758, val loss = 1.0705, ETA = 2008s
+step 2200 (12794ms): 144.18M tokens seen, train loss = 1.0614, val loss = 1.0593, ETA = 1995s
+step 2250 (12779ms): 147.46M tokens seen, train loss = 1.0433, val loss = 1.0394, ETA = 1982s
+step 2300 (12780ms): 150.73M tokens seen, train loss = 0.9979, val loss = 1.0252, ETA = 1969s
+step 2350 (12777ms): 154.01M tokens seen, train loss = 0.9940, val loss = 1.0174, ETA = 1956s
+step 2400 (12784ms): 157.29M tokens seen, train loss = 1.0187, val loss = 0.9935, ETA = 1943s
+step 2450 (12781ms): 160.56M tokens seen, train loss = 0.9736, val loss = 0.9837, ETA = 1930s
+step 2500 (12780ms): 163.84M tokens seen, train loss = 0.9877, val loss = 0.9802, ETA = 1917s
+step 2550 (12781ms): 167.12M tokens seen, train loss = 0.9771, val loss = 0.9630, ETA = 1905s
+step 2600 (12784ms): 170.39M tokens seen, train loss = 0.9674, val loss = 0.9800, ETA = 1892s
+step 2650 (12778ms): 173.67M tokens seen, train loss = 0.9421, val loss = 0.9580, ETA = 1879s
+step 2700 (12793ms): 176.95M tokens seen, train loss = 0.9177, val loss = 0.9524, ETA = 1866s
+step 2750 (12785ms): 180.22M tokens seen, train loss = 0.9375, val loss = 0.9327, ETA = 1854s
+step 2800 (12792ms): 183.50M tokens seen, train loss = 0.9239, val loss = 0.9523, ETA = 1841s
+step 2850 (12786ms): 186.78M tokens seen, train loss = 0.9188, val loss = 0.9219, ETA = 1828s
+step 2900 (12795ms): 190.05M tokens seen, train loss = 0.9087, val loss = 0.9347, ETA = 1816s
+step 2950 (12782ms): 193.33M tokens seen, train loss = 0.9117, val loss = 0.9083, ETA = 1803s
+step 3000 (12788ms): 196.61M tokens seen, train loss = 0.9062, val loss = 0.9066, ETA = 1790s
+step 3050 (12786ms): 199.88M tokens seen, train loss = 0.9083, val loss = 0.8953, ETA = 1778s
+step 3100 (12805ms): 203.16M tokens seen, train loss = 0.8876, val loss = 0.8834, ETA = 1765s
+step 3150 (12781ms): 206.44M tokens seen, train loss = 0.8925, val loss = 0.8958, ETA = 1752s
+step 3200 (12792ms): 209.72M tokens seen, train loss = 0.8915, val loss = 0.8915, ETA = 1740s
+step 3250 (12789ms): 212.99M tokens seen, train loss = 0.8745, val loss = 0.8852, ETA = 1727s
+step 3300 (12790ms): 216.27M tokens seen, train loss = 0.8723, val loss = 0.9075, ETA = 1714s
+step 3350 (12788ms): 219.55M tokens seen, train loss = 0.8922, val loss = 0.8734, ETA = 1701s
+step 3400 (12794ms): 222.82M tokens seen, train loss = 0.8574, val loss = 0.8582, ETA = 1688s
+step 3450 (12790ms): 226.10M tokens seen, train loss = 0.8710, val loss = 0.8721, ETA = 1676s
+step 3500 (12783ms): 229.38M tokens seen, train loss = 0.8495, val loss = 0.8675, ETA = 1663s
+step 3550 (12780ms): 232.65M tokens seen, train loss = 0.8538, val loss = 0.8579, ETA = 1650s
+step 3600 (12787ms): 235.93M tokens seen, train loss = 0.8385, val loss = 0.8520, ETA = 1637s
+step 3650 (12782ms): 239.21M tokens seen, train loss = 0.8547, val loss = 0.8548, ETA = 1624s
+step 3700 (12793ms): 242.48M tokens seen, train loss = 0.8606, val loss = 0.8446, ETA = 1611s
+step 3750 (12776ms): 245.76M tokens seen, train loss = 0.8520, val loss = 0.8494, ETA = 1599s
+step 3800 (12792ms): 249.04M tokens seen, train loss = 0.8382, val loss = 0.8412, ETA = 1586s
+step 3850 (12777ms): 252.31M tokens seen, train loss = 0.8497, val loss = 0.8293, ETA = 1573s
+step 3900 (12782ms): 255.59M tokens seen, train loss = 0.8289, val loss = 0.8221, ETA = 1560s
+step 3950 (12775ms): 258.87M tokens seen, train loss = 0.8482, val loss = 0.8401, ETA = 1547s
+step 4000 (12786ms): 262.14M tokens seen, train loss = 0.8133, val loss = 0.8261, ETA = 1534s
+
+Generated Text: 
+Lily started her to sandwing home sanding home. She gave her a big game and holds the other together. Lil
+
+step 4050 (12783ms): 265.42M tokens seen, train loss = 0.8162, val loss = 0.8232, ETA = 1521s
+step 4100 (12773ms): 268.70M tokens seen, train loss = 0.8053, val loss = 0.8202, ETA = 1509s
+step 4150 (12785ms): 271.97M tokens seen, train loss = 0.8167, val loss = 0.8186, ETA = 1496s
+step 4200 (12783ms): 275.25M tokens seen, train loss = 0.8192, val loss = 0.8117, ETA = 1483s
+step 4250 (12784ms): 278.53M tokens seen, train loss = 0.7952, val loss = 0.8137, ETA = 1470s
+step 4300 (12782ms): 281.80M tokens seen, train loss = 0.8112, val loss = 0.8063, ETA = 1457s
+step 4350 (12787ms): 285.08M tokens seen, train loss = 0.8032, val loss = 0.8047, ETA = 1445s
+step 4400 (12778ms): 288.36M tokens seen, train loss = 0.8268, val loss = 0.8028, ETA = 1432s
+step 4450 (12781ms): 291.64M tokens seen, train loss = 0.8110, val loss = 0.8117, ETA = 1419s
+step 4500 (12779ms): 294.91M tokens seen, train loss = 0.8186, val loss = 0.8091, ETA = 1406s
+step 4550 (12785ms): 298.19M tokens seen, train loss = 0.7942, val loss = 0.8000, ETA = 1393s
+step 4600 (12782ms): 301.47M tokens seen, train loss = 0.8209, val loss = 0.7987, ETA = 1381s
+step 4650 (12784ms): 304.74M tokens seen, train loss = 0.7965, val loss = 0.7909, ETA = 1368s
+step 4700 (12779ms): 308.02M tokens seen, train loss = 0.7923, val loss = 0.7923, ETA = 1355s
+step 4750 (12783ms): 311.30M tokens seen, train loss = 0.7955, val loss = 0.7908, ETA = 1342s
+step 4800 (12780ms): 314.57M tokens seen, train loss = 0.8029, val loss = 0.7949, ETA = 1330s
+step 4850 (12782ms): 317.85M tokens seen, train loss = 0.7744, val loss = 0.7977, ETA = 1317s
+step 4900 (12780ms): 321.13M tokens seen, train loss = 0.7905, val loss = 0.7921, ETA = 1304s
+step 4950 (12782ms): 324.40M tokens seen, train loss = 0.7803, val loss = 0.7926, ETA = 1291s
+step 5000 (12785ms): 327.68M tokens seen, train loss = 0.7752, val loss = 0.7882, ETA = 1278s
+step 5050 (12780ms): 330.96M tokens seen, train loss = 0.7819, val loss = 0.7789, ETA = 1266s
+step 5100 (12774ms): 334.23M tokens seen, train loss = 0.7890, val loss = 0.7806, ETA = 1253s
+step 5150 (12785ms): 337.51M tokens seen, train loss = 0.7711, val loss = 0.7792, ETA = 1240s
+step 5200 (12779ms): 340.79M tokens seen, train loss = 0.7765, val loss = 0.7715, ETA = 1227s
+step 5250 (12778ms): 344.06M tokens seen, train loss = 0.7772, val loss = 0.7775, ETA = 1214s
+step 5300 (12775ms): 347.34M tokens seen, train loss = 0.7802, val loss = 0.7726, ETA = 1202s
+step 5350 (12785ms): 350.62M tokens seen, train loss = 0.7714, val loss = 0.7718, ETA = 1189s
+step 5400 (12782ms): 353.89M tokens seen, train loss = 0.7757, val loss = 0.7731, ETA = 1176s
+step 5450 (12786ms): 357.17M tokens seen, train loss = 0.7722, val loss = 0.7647, ETA = 1163s
+step 5500 (12770ms): 360.45M tokens seen, train loss = 0.7753, val loss = 0.7695, ETA = 1150s
+step 5550 (12779ms): 363.72M tokens seen, train loss = 0.7742, val loss = 0.7700, ETA = 1138s
+step 5600 (12778ms): 367.00M tokens seen, train loss = 0.7781, val loss = 0.7658, ETA = 1125s
+step 5650 (12782ms): 370.28M tokens seen, train loss = 0.7711, val loss = 0.7725, ETA = 1112s
+step 5700 (12790ms): 373.56M tokens seen, train loss = 0.7727, val loss = 0.7638, ETA = 1099s
+step 5750 (12802ms): 376.83M tokens seen, train loss = 0.7678, val loss = 0.7603, ETA = 1087s
+step 5800 (12802ms): 380.11M tokens seen, train loss = 0.7602, val loss = 0.7604, ETA = 1074s
+step 5850 (12797ms): 383.39M tokens seen, train loss = 0.7546, val loss = 0.7635, ETA = 1062s
+step 5900 (12802ms): 386.66M tokens seen, train loss = 0.7583, val loss = 0.7636, ETA = 1049s
+step 5950 (12809ms): 389.94M tokens seen, train loss = 0.7800, val loss = 0.7546, ETA = 1036s
+step 6000 (12802ms): 393.22M tokens seen, train loss = 0.7512, val loss = 0.7500, ETA = 1024s
+
+Generated Text: 
+Lily was smelly and soon she started twinkling, so Jarry, feeling patieng around, laughing around the par
+
+step 6050 (12776ms): 396.49M tokens seen, train loss = 0.7625, val loss = 0.7613, ETA = 1011s
+step 6100 (12788ms): 399.77M tokens seen, train loss = 0.7549, val loss = 0.7539, ETA = 998s
+step 6150 (12786ms): 403.05M tokens seen, train loss = 0.7517, val loss = 0.7627, ETA = 986s
+step 6200 (12787ms): 406.32M tokens seen, train loss = 0.7418, val loss = 0.7440, ETA = 973s
+step 6250 (12773ms): 409.60M tokens seen, train loss = 0.7517, val loss = 0.7438, ETA = 960s
+step 6300 (12785ms): 412.88M tokens seen, train loss = 0.7427, val loss = 0.7409, ETA = 947s
+step 6350 (12783ms): 416.15M tokens seen, train loss = 0.7507, val loss = 0.7426, ETA = 934s
+step 6400 (12789ms): 419.43M tokens seen, train loss = 0.7532, val loss = 0.7477, ETA = 921s
+step 6450 (12785ms): 422.71M tokens seen, train loss = 0.7430, val loss = 0.7401, ETA = 908s
+step 6500 (12792ms): 425.98M tokens seen, train loss = 0.7281, val loss = 0.7424, ETA = 895s
+step 6550 (12783ms): 429.26M tokens seen, train loss = 0.7306, val loss = 0.7439, ETA = 882s
+step 6600 (12782ms): 432.54M tokens seen, train loss = 0.7283, val loss = 0.7439, ETA = 870s
+step 6650 (12787ms): 435.81M tokens seen, train loss = 0.7336, val loss = 0.7346, ETA = 857s
+step 6700 (12785ms): 439.09M tokens seen, train loss = 0.7303, val loss = 0.7316, ETA = 844s
+step 6750 (12782ms): 442.37M tokens seen, train loss = 0.7264, val loss = 0.7361, ETA = 831s
+step 6800 (12785ms): 445.64M tokens seen, train loss = 0.7378, val loss = 0.7283, ETA = 819s
+step 6850 (12784ms): 448.92M tokens seen, train loss = 0.7252, val loss = 0.7343, ETA = 806s
+step 6900 (12796ms): 452.20M tokens seen, train loss = 0.7300, val loss = 0.7223, ETA = 793s
+step 6950 (12738ms): 455.48M tokens seen, train loss = 0.7421, val loss = 0.7215, ETA = 780s
+step 7000 (12753ms): 458.75M tokens seen, train loss = 0.7190, val loss = 0.7265, ETA = 767s
+step 7050 (12742ms): 462.03M tokens seen, train loss = 0.7249, val loss = 0.7161, ETA = 754s
+step 7100 (12741ms): 465.31M tokens seen, train loss = 0.7101, val loss = 0.7203, ETA = 741s
+step 7150 (12747ms): 468.58M tokens seen, train loss = 0.7141, val loss = 0.7225, ETA = 728s
+step 7200 (12740ms): 471.86M tokens seen, train loss = 0.7126, val loss = 0.7168, ETA = 715s
+step 7250 (12735ms): 475.14M tokens seen, train loss = 0.7194, val loss = 0.7201, ETA = 702s
+step 7300 (12790ms): 478.41M tokens seen, train loss = 0.7010, val loss = 0.7130, ETA = 689s
+step 7350 (12794ms): 481.69M tokens seen, train loss = 0.7080, val loss = 0.7115, ETA = 676s
+step 7400 (12802ms): 484.97M tokens seen, train loss = 0.7168, val loss = 0.7123, ETA = 664s
+step 7450 (12791ms): 488.24M tokens seen, train loss = 0.6754, val loss = 0.7134, ETA = 651s
+step 7500 (12800ms): 491.52M tokens seen, train loss = 0.7037, val loss = 0.7105, ETA = 639s
+step 7550 (12809ms): 494.80M tokens seen, train loss = 0.7288, val loss = 0.7101, ETA = 626s
+step 7600 (12800ms): 498.07M tokens seen, train loss = 0.6956, val loss = 0.7087, ETA = 614s
+step 7650 (12788ms): 501.35M tokens seen, train loss = 0.6982, val loss = 0.7031, ETA = 601s
+step 7700 (12783ms): 504.63M tokens seen, train loss = 0.7013, val loss = 0.7033, ETA = 589s
+step 7750 (12786ms): 507.90M tokens seen, train loss = 0.7020, val loss = 0.7037, ETA = 576s
+step 7800 (12775ms): 511.18M tokens seen, train loss = 0.6837, val loss = 0.6973, ETA = 563s
+step 7850 (12775ms): 514.46M tokens seen, train loss = 0.6695, val loss = 0.6978, ETA = 550s
+step 7900 (12805ms): 517.73M tokens seen, train loss = 0.7118, val loss = 0.6960, ETA = 537s
+step 7950 (12797ms): 521.01M tokens seen, train loss = 0.7058, val loss = 0.6953, ETA = 525s
+step 8000 (12796ms): 524.29M tokens seen, train loss = 0.7001, val loss = 0.6964, ETA = 512s
+
+Generated Text: 
+Lily her mommy and her went to the dessk behind a bush and a haircut to help but stay there come backma's
+
+step 8050 (12801ms): 527.56M tokens seen, train loss = 0.6911, val loss = 0.6976, ETA = 499s
+step 8100 (12790ms): 530.84M tokens seen, train loss = 0.6824, val loss = 0.6924, ETA = 486s
+step 8150 (12795ms): 534.12M tokens seen, train loss = 0.6866, val loss = 0.6916, ETA = 473s
+step 8200 (12790ms): 537.40M tokens seen, train loss = 0.6775, val loss = 0.6890, ETA = 461s
+step 8250 (12800ms): 540.67M tokens seen, train loss = 0.6991, val loss = 0.6878, ETA = 448s
+step 8300 (12791ms): 543.95M tokens seen, train loss = 0.6762, val loss = 0.6870, ETA = 435s
+step 8350 (12792ms): 547.23M tokens seen, train loss = 0.6774, val loss = 0.6905, ETA = 423s
+step 8400 (12796ms): 550.50M tokens seen, train loss = 0.6783, val loss = 0.6860, ETA = 410s
+step 8450 (12801ms): 553.78M tokens seen, train loss = 0.6849, val loss = 0.6846, ETA = 397s
+step 8500 (12792ms): 557.06M tokens seen, train loss = 0.6785, val loss = 0.6883, ETA = 384s
+step 8550 (12800ms): 560.33M tokens seen, train loss = 0.6816, val loss = 0.6843, ETA = 371s
+step 8600 (12779ms): 563.61M tokens seen, train loss = 0.6645, val loss = 0.6843, ETA = 358s
+step 8650 (12787ms): 566.89M tokens seen, train loss = 0.6952, val loss = 0.6812, ETA = 346s
+step 8700 (12780ms): 570.16M tokens seen, train loss = 0.6701, val loss = 0.6850, ETA = 333s
+step 8750 (12776ms): 573.44M tokens seen, train loss = 0.6985, val loss = 0.6790, ETA = 320s
+step 8800 (12773ms): 576.72M tokens seen, train loss = 0.6738, val loss = 0.6815, ETA = 307s
+step 8850 (12787ms): 579.99M tokens seen, train loss = 0.6766, val loss = 0.6754, ETA = 294s
+step 8900 (12780ms): 583.27M tokens seen, train loss = 0.6716, val loss = 0.6803, ETA = 282s
+step 8950 (12787ms): 586.55M tokens seen, train loss = 0.6756, val loss = 0.6724, ETA = 269s
+step 9000 (12774ms): 589.82M tokens seen, train loss = 0.6680, val loss = 0.6727, ETA = 256s
+step 9050 (12777ms): 593.10M tokens seen, train loss = 0.6902, val loss = 0.6745, ETA = 243s
+step 9100 (12774ms): 596.38M tokens seen, train loss = 0.6868, val loss = 0.6709, ETA = 230s
+step 9150 (12780ms): 599.65M tokens seen, train loss = 0.6799, val loss = 0.6689, ETA = 217s
+step 9200 (12785ms): 602.93M tokens seen, train loss = 0.6629, val loss = 0.6724, ETA = 205s
+step 9250 (12783ms): 606.21M tokens seen, train loss = 0.6728, val loss = 0.6678, ETA = 192s
+step 9300 (12786ms): 609.48M tokens seen, train loss = 0.6699, val loss = 0.6657, ETA = 179s
+step 9350 (12781ms): 612.76M tokens seen, train loss = 0.6612, val loss = 0.6659, ETA = 166s
+step 9400 (12774ms): 616.04M tokens seen, train loss = 0.6676, val loss = 0.6651, ETA = 154s
+step 9450 (12785ms): 619.32M tokens seen, train loss = 0.6574, val loss = 0.6651, ETA = 141s
+step 9500 (12785ms): 622.59M tokens seen, train loss = 0.6732, val loss = 0.6637, ETA = 128s
+step 9550 (12781ms): 625.87M tokens seen, train loss = 0.6574, val loss = 0.6656, ETA = 115s
+step 9600 (12774ms): 629.15M tokens seen, train loss = 0.6516, val loss = 0.6618, ETA = 103s
+step 9650 (12792ms): 632.42M tokens seen, train loss = 0.6552, val loss = 0.6635, ETA = 90s
+step 9700 (12785ms): 635.70M tokens seen, train loss = 0.6633, val loss = 0.6621, ETA = 77s
+step 9750 (12786ms): 638.98M tokens seen, train loss = 0.6646, val loss = 0.6584, ETA = 64s
+step 9800 (12778ms): 642.25M tokens seen, train loss = 0.6590, val loss = 0.6589, ETA = 51s
+step 9850 (12783ms): 645.53M tokens seen, train loss = 0.6531, val loss = 0.6574, ETA = 39s
+step 9900 (12792ms): 648.81M tokens seen, train loss = 0.6646, val loss = 0.6571, ETA = 26s
+step 9950 (12788ms): 652.08M tokens seen, train loss = 0.6728, val loss = 0.6563, ETA = 13s
+step 10000 (12776ms): 655.36M tokens seen, train loss = 0.6436, val loss = 0.6559, ETA = 0s
+
+Generated Text: 
+Lily and Tom having fun. They warned expensive. Lily and Tom walked back to Lily, she saw many things in 
+
+Total training time: 2617.58s
+peak memory consumption: 23329 MiB
