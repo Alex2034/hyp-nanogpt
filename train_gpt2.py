@@ -32,8 +32,10 @@ parser.add_argument("--device_batch_size", type=int, default=32)
 parser.add_argument("--num_iterations", type=int, default=4)
 parser.add_argument("--gen_every", type=int, default=0)
 parser.add_argument("--gen_prompt", type=str, default="Once ")
+parser.add_argument("--gen_first", type=int, default=0)
 parser.add_argument("--train_loss_every", type=int, default=2)
 parser.add_argument("--val_loss_every", type=int, default=2)
+parser.add_argument("--save_every", type=int, default=0)
 parser.add_argument("--head_dim", type=int, default=16)
 parser.add_argument("--n_heads", type=int, default=4)
 parser.add_argument("--n_layers", type=int, default=6)
@@ -45,12 +47,10 @@ parser.add_argument("--head_mode", type=str, default="euc", \
     help="Set the mode for LM Head")
 parser.add_argument("--attn_mode", type=str, default="euc", \
     help="Set the mode for attention layers")
+parser.add_argument("--print_multiplier", type=int, default=5)
 
 args = parser.parse_args()
 config = Config(**vars(args))
-
-PRINT_MULTIPLIER = 5
-GENERATE_FIRST = 0
 
 random.seed(config.seed)
 np.random.seed(config.seed)
@@ -226,6 +226,13 @@ def grad_norm(params, norm_type=2):
     norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in params]), norm_type)
     return norm.item()
 
+def log_curvature(model, step):
+    for i, blk in enumerate(model.transformer.h):
+        if not hasattr(blk.attn, "log_c"): continue
+        c_vals = torch.exp(blk.attn.log_c.detach()).cpu().flatten()  # shape (n_heads,)
+        for j, c in enumerate(c_vals):
+            writer.add_scalar(f"Curvature/layer_{i}/head_{j}", c.item(), step)
+
 if master_process:
     model_size = raw_model.model_size()
     print("\n=== Model ===")
@@ -314,7 +321,7 @@ if master_process:
 total_start_event = torch.cuda.Event(enable_timing=True)
 interval_start_event = torch.cuda.Event(enable_timing=True)
 interval_end_event = torch.cuda.Event(enable_timing=True)
-intervals = []
+step_estimates = []
 total_start_event.record()
 interval_start_event.record()  
 
@@ -323,6 +330,8 @@ train_log_count = 0
 
 val_loss_accum = 0.0
 val_log_count  = 0
+
+best_val_loss = float('inf')
 
 # begin training
 train_loader.reset()
@@ -389,7 +398,7 @@ for step in range(config.num_iterations + 1):
         writer.add_scalar('grad_norm/wte',    gn_wte,    step)
         writer.add_scalar('grad_norm/head',   gn_head,   step)
     
-        if step % (PRINT_MULTIPLIER * config.train_loss_every) == 0:
+        if step % (config.print_multiplier * config.train_loss_every) == 0:
             print(f"Grad norms: curv={gn_curv:.3g}  matrix={gn_matrix:.3g}  non_mat={gn_nonmat:.3g}  wte={gn_wte:.3g}  head={gn_head:.3g}")
 
     for opt, sched in zip(optimizers, schedulers):
@@ -411,11 +420,11 @@ for step in range(config.num_iterations + 1):
 
         # Calculate elapsed time in milliseconds
         interval_time_ms = interval_start_event.elapsed_time(interval_end_event)
-        intervals.append(interval_time_ms / config.train_loss_every)
-        if len(intervals) >= 10:
-            avg_time_per_step = sum(intervals[-10:]) / 10.
-        elif len(intervals):
-            avg_time_per_step = sum(intervals) / len(intervals)
+        step_estimates.append(interval_time_ms / config.train_loss_every)
+        if len(step_estimates) >= 10:
+            avg_time_per_step = sum(step_estimates[-10:]) / 10.
+        elif len(step_estimates):
+            avg_time_per_step = sum(step_estimates) / len(step_estimates)
         else:
             avg_time_per_step = np.nan
 
@@ -430,21 +439,25 @@ for step in range(config.num_iterations + 1):
         writer.add_scalar('Loss/Train',      avg_train_loss, tokens_seen)
         writer.add_scalar('Loss/Validation', avg_val_loss,   tokens_seen)
         print(f"step {step} ({interval_time_ms:.0f}ms): {tokens_seen/1e6:.1f}M tokens seen, train loss = {avg_train_loss:.4f}, val loss = {val_loss:.4f}, ETA = {estimated_total_time:.0f}s")
-        if config.k_lr and step % (PRINT_MULTIPLIER * config.train_loss_every) == 0:  
+        if config.k_lr and step % (config.print_multiplier * config.train_loss_every) == 0:  
             print_curvature_stats(raw_model.transformer.h)
-
+            log_curvature(raw_model, step)
         # reset accumulators
         train_loss_accum = 0.0
         train_log_count  = 0
         val_loss_accum   = 0.0
         val_log_count    = 0
 
-        if master_process and (last_step or (config.save_every > 0 and step % config.save_every == 0)):
+        if config.save_every and (step % config.save_every == 0 or last_step) and avg_val_loss < best_val_loss:
+            ckpt = dict(step=step,
+                    model=raw_model.state_dict(),
+                    optimizers=[opt.state_dict() for opt in optimizers],
+                    best_val=avg_val_loss)
+            path = f"ckpts/{run_id}_{step:05d}.pt"
+            torch.save(ckpt, path)
+            best_val_loss = avg_val_loss 
 
-            log = dict(step=step, model=raw_model.state_dict(), optimizers=[opt.state_dict() for opt in optimizers])
-            torch.save(log, 'ckpts/%s_state_step%06d.pt' % (run_id, step))
-
-        if config.gen_every and master_process and (step % config.gen_every == 0) and (GENERATE_FIRST + step):
+        if config.gen_every and master_process and (step % config.gen_every == 0) and (config.gen_first + step):
             context = encode_text(tokenizer, config.gen_prompt, device)
             
             generated_tokens = raw_model.generate_text(context, max_length=config.gen_lenght, temperature=1.0, top_k=50)
@@ -461,8 +474,12 @@ if master_process:
     torch.cuda.synchronize()
 
     total_time_s = total_start_event.elapsed_time(total_end_event) / 1e3
-    print(f"Total training time: {total_time_s:.2f}s")
-    print(f"peak memory consumption: {torch.cuda.max_memory_allocated() // 1024 // 1024} MiB")
+    time_msg = f"Total training time: {total_time_s:.2f}s"
+    print(time_msg)
+    writer.add_text("Time", time_msg, step)
+    mem_msg = f"Peak memory consumption: {torch.cuda.max_memory_allocated() // 1024 // 1024} MiB"
+    print(mem_msg)
+    writer.add_text("GPU", mem_msg, step)
 
 if master_process:
     writer.close()

@@ -5,6 +5,7 @@ import os
 class Config:
     # Data hyperparams
     test_run: bool = False
+    print_multiplier: int = 5
     debug: bool = False
     data_path: str = "data/fineweb10B"
     input_bin: str = ""
@@ -18,6 +19,7 @@ class Config:
     weight_decay: float = 0
     # Evaluation/logging
     gen_every: int = 0
+    gen_first: int = 0
     gen_lenght: int = 100
     gen_prompt: str = "Once "
     train_loss_every: int = 10

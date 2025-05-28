@@ -1,9 +1,9 @@
 #!/bin/bash
 
-SEEDS=(0)
+# SEEDS=(0)
 MODES=('hyp')
-# SEEDS=(0 1 2 3 4)
-LR=(1. 0.)
+SEEDS=(0 1 2 3)
+LR=(10.)
 
 
 for k_lr in "${LR[@]}"; do
@@ -15,10 +15,11 @@ for k_lr in "${LR[@]}"; do
                 --gen_prompt "What is " \
                 --device_batch_size 42 \
                 --batch_size 84 \
-                --num_iterations 51 \
+                --num_iterations 7601 \
+                --save_every 2000 \
                 --gen_every 2000 \
-                --train_loss_every 10 \
-                --val_loss_every 10 \
+                --train_loss_every 50 \
+                --val_loss_every 50 \
                 --n_heads 12 \
                 --n_layers 12 \
                 --head_dim 16 \
