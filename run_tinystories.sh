@@ -1,9 +1,9 @@
 #!/bin/bash
-SEEDS=(0)
-MODES=('hyp')
+# SEEDS=(0)
+# MODES=('hyp')
 
-# SEEDS=(0 1 2 3 4)
-# MODES=('euc' 'hyp')
+SEEDS=(0 1 2 3)
+MODES=('hyp' 'euc')
 
 NAME='ts'
 
@@ -15,8 +15,8 @@ for seed in "${SEEDS[@]}"; do
             --gen_prompt "Lily " \
             --device_batch_size 128 \
             --batch_size 128 \
-            --num_iterations 5001 \
-            --gen_every 500 \
+            --num_iterations 7001 \
+            --gen_every 1000 \
             --train_loss_every 50 \
             --val_loss_every 50 \
             --n_heads 12 \

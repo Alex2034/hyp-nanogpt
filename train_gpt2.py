@@ -148,21 +148,38 @@ for p in raw_model.transformer.h.parameters():
         continue
     (matrix_params if p.ndim == 2 else non_matrix_params).append(p)
 
+
 wte_params = [raw_model.transformer.wte.weight]  
+
+
+if config.head_mode == 'hyp':
+    # raw_model.lm_head.optim_params() → [ { 'params': generator, … } ]
+    param_groups = raw_model.lm_head.optim_params()
+    optimizer_head = RiemannianSGD(param_groups, lr=config.head_lr)
+
+elif config.head_mode == 'euc':
+    # wrap the linear head into the same shape of param_groups
+    param_groups = [{ 'params': raw_model.lm_head.parameters() }]
+    optimizer_head = torch.optim.Adam(
+        [p for p in raw_model.lm_head.parameters()],
+        lr=config.head_lr,
+        betas=(0.8, 0.95),
+        eps=1e-10,
+        fused=True,
+    )
+else:
+    raise ValueError("Invalid head_mode, choose 'hyp' or 'euc'")
+
+# now flatten all parameter iterators into one list of Tensors
+head_params = []
+for grp in param_groups:
+    head_params.extend(list(grp['params']))
+
 
 optimizer_wte   = torch.optim.Adam(wte_params + non_matrix_params,
                                    lr=config.wte_lr, betas=(0.8, 0.95),
                                    eps=1e-10, fused=True)
 optimizer_muon  = Muon(matrix_params, lr=config.muon_lr, momentum=0.95)
-
-if config.head_mode == 'hyp':
-    head_params = raw_model.lm_head.optim_params()
-    optimizer_head = RiemannianSGD(head_params, lr=config.head_lr)
-elif config.head_mode == 'euc':  
-    head_params = raw_model.lm_head.parameters()
-    optimizer_head = torch.optim.Adam(head_params, lr=config.head_lr, betas=(0.8, 0.95), eps=1e-10, fused=True) # optim.SGD(raw_model.lm_head.parameters(), lr=config.head_lr)
-else:
-    raise ValueError("Incorrect head_mode")
 
 optimizers = [optimizer_head, optimizer_muon, optimizer_wte]
 
@@ -263,7 +280,7 @@ if master_process:
             elif config.k_lr == 0:
                 hyp_params += f"_c{config.curvature:.1g}"  
         
-        run_id = f"{seconds_since_midnight}_{dataset_aliases[dataset_name]}_{arch}{hyp_params}_s{config.seed}"
+        run_id = f"{seconds_since_midnight:05d}_{dataset_aliases[dataset_name]}_{arch}{hyp_params}_s{config.seed}"
         return date, run_id
 
     # create the run ID

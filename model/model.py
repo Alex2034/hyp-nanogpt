@@ -54,7 +54,8 @@ class CustomSelfAttention(nn.Module):
         if self.attn_mode == 'hyp':
             if config.k_lr == 0.:
                 # If curvature is fixed, set self.c as a constant tensor
-                self.register_buffer('c', torch.tensor(float(config.curvature)))
+                init_log_c = math.log(config.curvature)
+                self.register_buffer('log_c', torch.tensor(init_log_c))
             elif config.k_lr > 0:
                 # If curvature is learned
                 noise = 0.01 * torch.randn(1, config.n_heads, 1, 1, device=self.c_attn.weight.device) 

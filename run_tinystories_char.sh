@@ -2,8 +2,8 @@
 # SEEDS=(0)
 # MODES=('hyp')
 
-SEEDS=(0 1 2 4)
-MODES=('euc' 'hyp')
+SEEDS=(0 1 2 3)
+MODES=('hyp' 'euc')
 
 NAME='tsc'
 
