@@ -292,9 +292,9 @@ class GPT(nn.Module):
         """Calculate the model size in millions or thousands, based on parameter count."""
         total_params = sum(p.numel() for p in self.parameters())
         if total_params >= 1e6:
-            return f"{total_params / 1e6:.2f}M"
+            return f"{total_params / 1e6:.3g}M"
         else:
-            return f"{total_params / 1e3:.2f}K"
+            return f"{total_params / 1e3:.3g}K"
         
 ## OLD
         

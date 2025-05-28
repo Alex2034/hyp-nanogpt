@@ -49,6 +49,9 @@ parser.add_argument("--attn_mode", type=str, default="euc", \
 args = parser.parse_args()
 config = Config(**vars(args))
 
+PRINT_MULTIPLIER = 5
+GENERATE_FIRST = 0
+
 random.seed(config.seed)
 np.random.seed(config.seed)
 torch.manual_seed(config.seed)
@@ -276,11 +279,11 @@ if master_process:
         hyp_params = ""
         if 'eh' in arch:
             if config.k_lr:
-                hyp_params += f"_lr{config.k_lr:.1g}"  
+                hyp_params += f"_lr{config.k_lr:.0f}"  
             elif config.k_lr == 0:
-                hyp_params += f"_c{config.curvature:.1g}"  
+                hyp_params += f"_c{config.curvature:.0f}"  
         
-        run_id = f"{seconds_since_midnight:05d}_{dataset_aliases[dataset_name]}_{arch}{hyp_params}_s{config.seed}"
+        run_id = f"{seconds_since_midnight:05d}_{dataset_aliases[dataset_name]}_{arch}{hyp_params}_{model_size}_s{config.seed}"
         return date, run_id
 
     # create the run ID
@@ -373,7 +376,7 @@ for step in range(config.num_iterations + 1):
         p.grad /= train_accumulation_steps
     
     # gradient norm monitoring
-    if step % config.train_loss_every == 0:
+    if master_process and step % config.train_loss_every == 0:
         gn_curv   = grad_norm(curv_params)
         gn_matrix = grad_norm(matrix_params)
         gn_nonmat = grad_norm(non_matrix_params)
@@ -386,8 +389,8 @@ for step in range(config.num_iterations + 1):
         writer.add_scalar('grad_norm/wte',    gn_wte,    step)
         writer.add_scalar('grad_norm/head',   gn_head,   step)
     
-    if step % (5*config.train_loss_every) == 0:
-        print(f"Grad norms: curv={gn_curv:.3g}  matrix={gn_matrix:.3g}  non_mat={gn_nonmat:.3g}  wte={gn_wte:.3g}  head={gn_head:.3g}")
+        if step % (PRINT_MULTIPLIER * config.train_loss_every) == 0:
+            print(f"Grad norms: curv={gn_curv:.3g}  matrix={gn_matrix:.3g}  non_mat={gn_nonmat:.3g}  wte={gn_wte:.3g}  head={gn_head:.3g}")
 
     for opt, sched in zip(optimizers, schedulers):
         opt.step()
@@ -409,8 +412,13 @@ for step in range(config.num_iterations + 1):
         # Calculate elapsed time in milliseconds
         interval_time_ms = interval_start_event.elapsed_time(interval_end_event)
         intervals.append(interval_time_ms / config.train_loss_every)
-        
-        avg_time_per_step = sum(intervals[-10:]) / 10.
+        if len(intervals) >= 10:
+            avg_time_per_step = sum(intervals[-10:]) / 10.
+        elif len(intervals):
+            avg_time_per_step = sum(intervals) / len(intervals)
+        else:
+            avg_time_per_step = np.nan
+
         estimated_total_time = avg_time_per_step * (config.num_iterations - step) / 1e3
         
         # compute the averages
@@ -421,8 +429,8 @@ for step in range(config.num_iterations + 1):
         tokens_seen = step * tokens_per_iter
         writer.add_scalar('Loss/Train',      avg_train_loss, tokens_seen)
         writer.add_scalar('Loss/Validation', avg_val_loss,   tokens_seen)
-        print(f"step {step} ({interval_time_ms:.0f}ms): {tokens_seen/1e6:.2f}M tokens seen, train loss = {avg_train_loss:.4f}, val loss = {val_loss:.4f}, ETA = {estimated_total_time:.0f}s")
-        if config.k_lr and step % (5*config.train_loss_every) == 0:  
+        print(f"step {step} ({interval_time_ms:.0f}ms): {tokens_seen/1e6:.1f}M tokens seen, train loss = {avg_train_loss:.4f}, val loss = {val_loss:.4f}, ETA = {estimated_total_time:.0f}s")
+        if config.k_lr and step % (PRINT_MULTIPLIER * config.train_loss_every) == 0:  
             print_curvature_stats(raw_model.transformer.h)
 
         # reset accumulators
@@ -436,7 +444,7 @@ for step in range(config.num_iterations + 1):
             log = dict(step=step, model=raw_model.state_dict(), optimizers=[opt.state_dict() for opt in optimizers])
             torch.save(log, 'ckpts/%s_state_step%06d.pt' % (run_id, step))
 
-        if config.gen_every and master_process and ((step) % config.gen_every == 0):
+        if config.gen_every and master_process and (step % config.gen_every == 0) and (GENERATE_FIRST + step):
             context = encode_text(tokenizer, config.gen_prompt, device)
             
             generated_tokens = raw_model.generate_text(context, max_length=config.gen_lenght, temperature=1.0, top_k=50)
