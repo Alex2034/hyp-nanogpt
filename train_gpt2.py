@@ -33,6 +33,7 @@ parser.add_argument("--num_iterations", type=int, default=4)
 parser.add_argument("--gen_every", type=int, default=0)
 parser.add_argument("--gen_prompt", type=str, default="Once ")
 parser.add_argument("--gen_first", type=int, default=0)
+parser.add_argument("--gen_length", type=int, default=200)
 parser.add_argument("--train_loss_every", type=int, default=2)
 parser.add_argument("--val_loss_every", type=int, default=2)
 parser.add_argument("--save_every", type=int, default=0)
@@ -245,6 +246,7 @@ if master_process:
         f"head:{n_params(head_params):,}\n")
     print(f"Data Path:            {config.data_path}")
     print(f"Sequence Length:      {config.sequence_length}")
+    print(f"Total Tokens:      {config.num_iterations * tokens_per_iter:,}")
     print(f"Batch Size (global):  {config.batch_size}")
     print(f"Batch Size (device):  {config.device_batch_size}")
     print(f"n_layers:              {config.n_layers}")
@@ -460,7 +462,7 @@ for step in range(config.num_iterations + 1):
         if config.gen_every and master_process and (step % config.gen_every == 0) and (config.gen_first + step):
             context = encode_text(tokenizer, config.gen_prompt, device)
             
-            generated_tokens = raw_model.generate_text(context, max_length=config.gen_lenght, temperature=1.0, top_k=50)
+            generated_tokens = raw_model.generate_text(context, max_length=config.gen_length, temperature=1.0, top_k=50)
             generated_text = decode_tokens(tokenizer, generated_tokens[0])
             
             writer.add_text(f"Generated_Text/Step_{step}", generated_text, step)

@@ -15,12 +15,12 @@ class Config:
     batch_size: int = 512     # global batch size (across devices)
     device_batch_size: int = 32  # per-device batch size
     num_iterations: int = 1000
-    cooldown_frac: float = 0.4
+    cooldown_frac: float = 0.8
     weight_decay: float = 0
     # Evaluation/logging
     gen_every: int = 0
     gen_first: int = 0
-    gen_lenght: int = 100
+    gen_length: int = 100
     gen_prompt: str = "Once "
     train_loss_every: int = 10
     val_loss_every: int = 10
