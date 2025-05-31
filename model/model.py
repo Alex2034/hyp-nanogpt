@@ -249,7 +249,6 @@ class GPT(nn.Module):
 
     def forward(self, idx, targets=None, return_logits=True):
 
-        # forward the GPT model itself
         x = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
         x = F.rms_norm(x, (x.size(-1),))
         for block in self.transformer.h:

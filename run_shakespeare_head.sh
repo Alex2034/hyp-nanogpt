@@ -2,11 +2,12 @@
 
 SEEDS=(0 1 2 3)
 MODES=('hyp')
-LR=(1. 3.33 10. 33.3)
+LR=(1.)
 
 for k_lr in "${LR[@]}"; do
     for seed in "${SEEDS[@]}"; do
         for mode in "${MODES[@]}"; do
+            echo "Running ${mode} attn with k_lr = ${k_lr} and seed = ${seed}"
             OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 torchrun --standalone --nproc_per_node=1 \
                 train_gpt2.py \
                 --data_path "data/shakespeare_char" \

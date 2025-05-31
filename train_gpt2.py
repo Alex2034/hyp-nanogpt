@@ -37,6 +37,7 @@ parser.add_argument("--gen_length", type=int, default=200)
 parser.add_argument("--train_loss_every", type=int, default=2)
 parser.add_argument("--val_loss_every", type=int, default=2)
 parser.add_argument("--save_every", type=int, default=0)
+parser.add_argument("--log_curv_every", type=int, default=0)
 parser.add_argument("--head_dim", type=int, default=16)
 parser.add_argument("--n_heads", type=int, default=4)
 parser.add_argument("--n_layers", type=int, default=6)
@@ -157,12 +158,10 @@ wte_params = [raw_model.transformer.wte.weight]
 
 
 if config.head_mode == 'hyp':
-    # raw_model.lm_head.optim_params() → [ { 'params': generator, … } ]
     param_groups = raw_model.lm_head.optim_params()
     optimizer_head = RiemannianSGD(param_groups, lr=config.head_lr)
 
 elif config.head_mode == 'euc':
-    # wrap the linear head into the same shape of param_groups
     param_groups = [{ 'params': raw_model.lm_head.parameters() }]
     optimizer_head = torch.optim.Adam(
         [p for p in raw_model.lm_head.parameters()],
@@ -443,6 +442,7 @@ for step in range(config.num_iterations + 1):
         print(f"step {step} ({interval_time_ms:.0f}ms): {tokens_seen/1e6:.1f}M tokens seen, train loss = {avg_train_loss:.4f}, val loss = {val_loss:.4f}, ETA = {estimated_total_time:.0f}s")
         if config.k_lr and step % (config.print_multiplier * config.train_loss_every) == 0:  
             print_curvature_stats(raw_model.transformer.h)
+        if config.k_lr and step % config.log_curv_every == 0:
             log_curvature(raw_model, step)
         # reset accumulators
         train_loss_accum = 0.0

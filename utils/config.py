@@ -24,6 +24,7 @@ class Config:
     gen_prompt: str = "Once "
     train_loss_every: int = 10
     val_loss_every: int = 10
+    log_curv_every: int = 0
     val_tokens: int = None # 10_485_760
     val_tokens_frac: float = 1. 
     save_every: int = 0
@@ -47,9 +48,6 @@ class Config:
     seed: int = 42
     
     def __post_init__(self):
-        """
-        Dynamically set up paths and possibly recalculate n_embd from n_heads, head_dim.
-        """
         # If you want n_embd to be set from n_heads * head_dim:
         if self.head_dim:
             self.n_embd = self.n_heads * self.head_dim
@@ -58,6 +56,9 @@ class Config:
         if self.head_mode == 'euc' and self.attn_mode == 'euc':
             self.k_lr = 0.
             self.curvature = 0.
+
+        if self.log_curv_every == 0:
+            self.log_curv_every = self.val_loss_every
 
         dataset_name = os.path.basename(self.data_path)
 
