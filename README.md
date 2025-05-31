@@ -44,5 +44,3 @@ For convenience, we provide shell scripts to run multiple experiments:
 
 - [kellerjordan/nanoGPT](https://github.com/kellerjordan/nanoGPT) for the baseline implementation
 - [karpathy/nanoGPT](https://github.com/karpathy/nanoGPT) for the original nanoGPT 
-- [kschwethelm/HyperbolicCV](https://github.com/kschwethelm/HyperbolicCV/tree/main/code) for the LorentzMLR code
-- [geoopt](https://github.com/geoopt/geoopt) for the Riemannian optimization code
