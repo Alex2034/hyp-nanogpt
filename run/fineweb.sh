@@ -1,22 +1,22 @@
 #!/bin/bash
 
 # SEEDS=(0)
-MODES=('hyp')
-SEEDS=(0)
-LR=(10.)
+MODES=('hyp' 'euc')
+SEEDS=(0 1 2)
+LR=(1.)
 
 
 for k_lr in "${LR[@]}"; do
     for seed in "${SEEDS[@]}"; do
         for mode in "${MODES[@]}"; do
-            OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --standalone --nproc_per_node=4 \
+            OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0,1 torchrun --standalone --nproc_per_node=2 \
                 train_gpt2.py \
                 --data_path "data/finewebedu" \
                 --gen_prompt "The " \
                 --device_batch_size 25 \
-                --batch_size 100 \
-                --num_iterations 10001 \
-                --save_every 1000 \
+                --batch_size 50 \
+                --num_iterations 20001 \
+                --save_every 2000 \
                 --gen_every 1000 \
                 --gen_length 200 \
                 --train_loss_every 50 \
@@ -27,10 +27,10 @@ for k_lr in "${LR[@]}"; do
                 --sequence_length 1024 \
                 --attn_mode "$mode" \
                 --head_mode "euc"\
-                --curvature 0.001 \
+                --curvature 1. \
                 --k_lr "$k_lr" \
                 --seed "$seed" \
-                > new_logs/fwe_${mode}_run_${seed}.txt 2>&1
+                > run_logs/fwe_${mode}_run_${seed}.txt 2>&1
         done
     done
 done

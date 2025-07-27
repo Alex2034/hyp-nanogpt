@@ -26,7 +26,7 @@ class Config:
     val_loss_every: int = 10
     log_curv_every: int = 0
     val_tokens: int = None # 10_485_760
-    val_tokens_frac: float = 1. 
+    val_tokens_frac: float = 1.
     save_every: int = 0
     # Model architecture
     vocab_size: int = 50304
@@ -39,7 +39,9 @@ class Config:
     n_embd: int = 768
     head_mode: str = "euc"
     attn_mode: str = "euc"
+    normalization: str = "power"
     curvature: float = 0.0
+    init_p: float = 2.0
     k_lr: float = 0.0
     wte_lr: float = 0.6
     muon_lr: float = 0.05

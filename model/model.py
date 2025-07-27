@@ -4,7 +4,7 @@ from torch import nn
 import torch.nn.functional as F
 
 from model.lorentz import LorentzManifold
-from utils.lmath import project, distance
+from utils.lmath import project, distance, inner
 
 
 class Rotary(torch.nn.Module):
@@ -50,6 +50,7 @@ class CustomSelfAttention(nn.Module):
         self.c_proj.weight.data.zero_()
         self.rotary = Rotary(self.head_dim)
         self.attn_mode = config.attn_mode
+        self.normalization = config.normalization
         
         if self.attn_mode == 'hyp':
             if config.k_lr == 0.:
@@ -65,14 +66,21 @@ class CustomSelfAttention(nn.Module):
                 raise ValueError(f"Invalid k_lr")
             
             # Register 'p' and 'eps' as buffers if they are fixed constants
-            self.register_buffer('p', torch.tensor(2.0))
             self.register_buffer('eps', torch.tensor(1e-3))
+
+            if self.normalization == 'learnable':
+                noise = 0.01 * torch.randn(1, config.n_heads, 1, 1, device=self.c_attn.weight.device)
+                init_p = noise + config.init_p
+                self.p = nn.Parameter(init_p)
+            else:
+                self.register_buffer('p', torch.tensor(config.init_p))
         
 #         if not self.flash:
 #             print("WARNING: using slow attention. Flash Attention requires PyTorch >= 2.0")
             # causal mask to ensure that attention is only applied to the left in the input sequence
-        self.register_buffer("bias", torch.tril(torch.ones(config.sequence_length, config.sequence_length))
-                                        .view(1, 1, config.sequence_length, config.sequence_length))
+        self.register_buffer("bias", torch.tril(
+            torch.ones(config.sequence_length, config.sequence_length)
+            ).view(1, 1, config.sequence_length, config.sequence_length))
 
     def forward(self, x):
         B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
@@ -84,7 +92,7 @@ class CustomSelfAttention(nn.Module):
         v = v.view(B, T, self.n_heads, C // self.n_heads).transpose(1, 2) # (B, nh, T, hs)
         cos, sin = self.rotary(q)
         q, k = F.rms_norm(q, (q.size(-1),)), F.rms_norm(k, (k.size(-1),))
-        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin) 
+        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
 #         if self.flash:
 #             # efficient attention using Flash Attention CUDA kernels
@@ -96,17 +104,21 @@ class CustomSelfAttention(nn.Module):
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
             att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
             att = F.softmax(att, dim=-1)
-            y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+            y = att @ v  # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
 
-        elif self.attn_mode == 'hyp': 
+        elif self.attn_mode == 'hyp':
             inv_c = torch.exp(-self.log_c)
             lq = project(q, k=inv_c, dim=-1).unsqueeze(-2)
             lk = project(k, k=inv_c, dim=-1).unsqueeze(-3)
-            dist = distance(lq, lk, k=inv_c, dim=-1)
-
-            wei = 1 / (self.eps + dist**self.p)
-            wei = wei.masked_fill(self.bias[:,:,:T,:T] == 0, 0.) 
-            wei = wei / wei.sum(dim = -1, keepdim = True)
+            if (self.normalization == 'power') or (self.normalization == 'learnable'):
+                dist = distance(lq, lk, k=inv_c, dim=-1)
+                wei = 1 / (self.eps + dist**self.p)
+            elif self.normalization == 'exp':
+                z = - inner(lq, lk, dim=-1) / inv_c
+                p = - torch.sqrt(inv_c)
+                wei = (z + torch.sqrt(z**2 - 1))**p
+            wei = wei.masked_fill(self.bias[:,:,:T,:T] == 0, 0.)
+            wei = wei / wei.sum(dim=-1, keepdim=True)
             # wei = F.softmax(wei, dim=-1) # (B, T, T)
             y = wei @ v
             

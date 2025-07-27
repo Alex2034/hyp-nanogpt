@@ -4,8 +4,9 @@ __pycache__/
 data/**/*.bin
 data/cn_wiki/input.txt
 ckpts/
-runs/
+tensorboard_runs/
 old_runs/
+run_logs/
 .nfs*
 *.txt
 *.pkl

@@ -16,9 +16,9 @@ from transformers import GPT2TokenizerFast  # type: ignore
 from custom_tokenizers.char_tokenizer import CharacterTokenizer
 from model.rsgd import RiemannianSGD
 from model.model import GPT
+from model.config import Config
 from utils.muon import Muon
 from utils.loader import DistributedDataLoader
-from utils.config import Config
 torch.set_float32_matmul_precision('high')
 
 parser = argparse.ArgumentParser()
@@ -49,6 +49,12 @@ parser.add_argument("--curvature", type=float, default=1.0)
 parser.add_argument("--head_mode", type=str, default="euc")
 
 parser.add_argument("--attn_mode", type=str, default="euc",
+                    help="Set the mode for attention layers")
+
+parser.add_argument("--normalization", type=str, default="power",
+                    help="Set the mode for attention layers")
+
+parser.add_argument("--init_p", type=float, default=2.,
                     help="Set the mode for attention layers")
 
 parser.add_argument("--print_multiplier", type=int, default=5)
@@ -250,6 +256,24 @@ def print_curvature_stats(blocks, grads):
     print(f"\n{stats}\n{grads}\n")
 
 
+def print_p_stats(blocks):
+    ps = []
+    for block in blocks:
+        if hasattr(block.attn, "p"):  
+            ps.append(block.attn.p.detach().cpu().reshape(-1))
+    if not ps:
+        return
+    all_p = torch.cat(ps)
+    mean = all_p.mean().item()
+    std = all_p.std(unbiased=False).item()
+    stats = (
+        f"Power param stats over all blocks/heads: "
+        f"{mean:.4g} ± {std:.2g} "
+        f"(min={all_p.min().item():.3g}, max={all_p.max().item():.3g})"
+    )
+    print(f"\n{stats}")
+
+
 def n_params(group):
     return sum(p.numel() for p in group)
 
@@ -320,6 +344,11 @@ if master_process:
             'euc': 'e',
             'hyp': 'h'
         }
+        norm_aliases = {
+            'power': 'pow',
+            'exp': 'exp',
+            'learnable': 'lrn'
+        }
         date = timestamp.strftime('%m.%d')
         seconds_since_midnight = (
             timestamp - timestamp.replace(
@@ -329,7 +358,8 @@ if master_process:
         # get architecture configuration
         head = mode_aliases[config.head_mode]
         attn = mode_aliases[config.attn_mode]
-        arch = f"{head}{attn}"
+        norm = norm_aliases[config.normalization]
+        arch = f"{head}{attn}_{norm}"
         # build the hyperbolic parameters string
         hyp_params = ""
         if 'eh' in arch:
@@ -350,7 +380,7 @@ if master_process:
     now = datetime.datetime.now()
     date, run_id = create_run_id(config, dataset_name, now)
     # create log directory and file
-    logdir = f'runs/{date}/{run_id}/'
+    logdir = f'tensorboard_runs/{date}/{run_id}/'
     os.makedirs(logdir, exist_ok=True)
     os.makedirs(os.path.join(logdir, "tensorboard_logs"), exist_ok=True)
 
@@ -458,13 +488,14 @@ for step in range(config.num_iterations + 1):
                 f"wte={gn_wte:.3g} | "
                 f"head={gn_head:.3g} | "
             )
-
     for opt, sched in zip(optimizers, schedulers):
         opt.step()
         sched.step()
     with torch.no_grad():
         for log_c in curv_params:
             log_c.clamp_(min=math.log(1e-5), max=math.log(1e3))
+        for p in non_matrix_params:
+            p.clamp_(min=1e-2, max=1e2)
 
     model.zero_grad(set_to_none=True)
     train_loss_accum += train_loss.item()
@@ -507,6 +538,7 @@ for step in range(config.num_iterations + 1):
             )
         if config.k_lr and step % (config.print_multiplier *
                                    config.train_loss_every) == 0:
+            print_p_stats(raw_model.transformer.h)
             print_curvature_stats(raw_model.transformer.h, grads_string)
         if config.k_lr and step % config.log_curv_every == 0:
             log_curvature(raw_model, step)
