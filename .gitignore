@@ -1,5 +1,8 @@
 pylog124M/
 experiments/
+images/
+notebooks/
+**/*.ipynb
 __pycache__/
 data/**/*.bin
 data/cn_wiki/input.txt
