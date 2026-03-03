@@ -3,6 +3,8 @@ experiments/
 images/
 notebooks/
 **/*.ipynb
+train_gpt2_prev.py
+train_gpt2_orig.py
 __pycache__/
 data/**/*.bin
 data/cn_wiki/input.txt
