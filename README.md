@@ -1,46 +1,62 @@
 # Hyperbolic nanoGPT
 
-Forked from [kellerjordan/nanoGPT](https://github.com/kellerjordan/nanoGPT)
+Code for *Curvature Stratification in Attention: Probing Intrinsic Geometry* (arXiv link TBD). The repo preserves the full history of experiments and tuning; bringing it to "reproduce experiments out of the box" is work in progress.
 
-This project explores the benefits of hyperbolic geometry in language models by modifying various components of nanoGPT. The hypothesis is that relationships in languagemight be better represented in hyperbolic rather than Euclidean space.
+## Modifications
 
-### Current Modifications
+**Hyperbolic attention** — QK similarity is based on hyperbolic (Lorentz) distance instead of dot product, with a learnable curvature param per attention head. Set `attn_mode='hyp'` and `k_lr > 0` to enable.
 
-The following components can be switched between Euclidean and hyperbolic versions:
+**Lorentz LM Head** — WIP; not required for the paper. Experiments use `head_mode='euc'`.
 
-##### Language Model Head (`model/model.py` -> `LorentzMLR` class)
-(currently outperforms the original slightly but has to be studied more)
+## Installation and Running
 
-##### Attention Layer (file: `model/model.py` -> `HyperbolicSelfAttention` class)
-(currently unstable but learns some curvatures)
+**Main env** (full training):
 
-##### TBD: 
-Embeddings 
-
-### Installation
 ```bash
-git clone https://github.com/Alex2034/hyp-nanogpt
-cd hyp-nanogpt
 conda env create -f env.yaml
-conda activate hyp-nanogpt
+conda activate hypgpt
 ```
 
-### Experiment Scripts
+**Light env** (debug/tests, CPU):
 
-For convenience, we provide shell scripts to run multiple experiments:
+```bash
+conda create -n hypgpt-test python=3.10 -y
+conda activate hypgpt-test
+pip install torch transformers
+```
 
-1. `run_hyp.sh` - Runs experiments with adjustable components
-2. `run_euc.sh` - Runs baseline Euclidean experiments
-3. `run_single.sh` - Useful for single experiment runs
+**Debug scripts** (no GPU):
 
-### Key Parameters
+- `python debug/debug.py` — forward pass, backward, generation (Shakespeare char)
+- `python debug/debug_inference.py` — load FineWebEdu checkpoint and generate (uses `data/gpt2_tokenizer`)
 
-- `head_mode`: Choose between 'hyp' (Hyperbolic) or 'euc' (Euclidean) for the LM head
-- `attn_mode`: Choose between 'hyp' or 'euc' for the attention 
-- `curvature`: Initial curvature value for hyperbolic space (if using hyperbolic components)
-- `k_lr`: Learning rate for the curvature parameter (set to 0 to keep curvature fixed)
+**Experiment scripts** (GPU, DDP):
 
-### Acknowledgements
+- `run/shakespeare.sh`, `run/shakespeare_head.sh`
+- `run/tinystories.sh`, `run/tinystories_char.sh`
+- `run/fineweb.sh`, `run/fineweb_euc.sh`
+- `run/test.sh` — short run for sanity check
 
-- [kellerjordan/nanoGPT](https://github.com/kellerjordan/nanoGPT) for the baseline implementation
-- [karpathy/nanoGPT](https://github.com/karpathy/nanoGPT) for the original nanoGPT 
+Run from repo root with `torchrun`, e.g.:
+
+```bash
+torchrun --standalone --nproc_per_node=1 train_gpt2.py --data_path data/shakespeare_char --attn_mode hyp --head_mode euc --k_lr 1.0 ...
+```
+
+## Key Parameters
+
+
+| Parameter                                            | Description                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------ |
+| `attn_mode`                                          | `'hyp'` (hyperbolic) or `'euc'` (baseline)                   |
+| `head_mode`                                          | `'hyp'` or `'euc'` for LM head                               |
+| `k_lr`                                               | Learning rate for curvature (0 = fixed)                      |
+| `curvature`                                          | Initial curvature                                            |
+| `data_path`                                          | Dataset dir, e.g. `data/shakespeare_char`, `data/finewebedu` |
+| `n_layers`, `n_heads`, `head_dim`, `sequence_length` | Architecture                                                 |
+
+
+## Acknowledgements
+
+- [modded-nanogpt](https://github.com/kellerjordan/nanoGPT) and [karpathy/nanoGPT](https://github.com/karpathy/nanoGPT) for the base implementation.
+

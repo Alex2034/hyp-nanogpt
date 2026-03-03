@@ -3,6 +3,7 @@ experiments/
 __pycache__/
 data/**/*.bin
 data/cn_wiki/input.txt
+data/gpt2_tokenzer
 ckpts/
 tensorboard_runs/
 old_runs/
@@ -10,3 +11,4 @@ run_logs/
 .nfs*
 *.txt
 *.pkl
+*.tex

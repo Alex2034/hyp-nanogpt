@@ -2,9 +2,13 @@ import os
 import json
 from pathlib import Path
 import collections
+import urllib.request
+
 import numpy as np
 
 from custom_tokenizers.char_tokenizer import CharacterTokenizer
+
+TINYSHAKESPEARE_URL = "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
 
 def build_tokenizer(text, model_max_length=int(1e9)):
     # Extract unique characters from the text and sort them
@@ -42,15 +46,17 @@ def load_tokenizer(save_directory):
 def main():
     # Get the directory where this script is located
     script_dir = Path(__file__).parent
-    # Specify the input text file relative to the script directory
     input_file_path = script_dir / "input.txt"
-    
-    if not input_file_path.exists():
-        raise FileNotFoundError(f"{input_file_path} not found. Please ensure the file exists.")
-    
-    # Read the input text
-    with open(input_file_path, "r", encoding="utf-8") as f:
-        text = f.read()
+
+    if input_file_path.exists():
+        with open(input_file_path, "r", encoding="utf-8") as f:
+            text = f.read()
+    else:
+        print(f"{input_file_path} not found, downloading from {TINYSHAKESPEARE_URL}")
+        with urllib.request.urlopen(TINYSHAKESPEARE_URL) as resp:
+            text = resp.read().decode("utf-8")
+        input_file_path.write_text(text, encoding="utf-8")
+        print(f"Saved to {input_file_path}")
     
     print(f"Length of text: {len(text)} characters")
     
