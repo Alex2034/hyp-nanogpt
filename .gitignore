@@ -8,7 +8,7 @@ train_gpt2_orig.py
 __pycache__/
 data/**/*.bin
 data/cn_wiki/input.txt
-data/gpt2_tokenzer
+data/gpt2_tokenizer
 ckpts/
 tensorboard_runs/
 old_runs/
